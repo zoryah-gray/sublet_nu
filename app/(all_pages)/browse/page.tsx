@@ -5,13 +5,12 @@ import clsx from 'clsx';
 import {
   MagnifyingGlassIcon,
   MapPinIcon,
-  ChevronLeftIcon,
-  ChevronRightIcon,
   FunnelIcon,
   XMarkIcon,
 } from '@heroicons/react/24/outline';
 import NavBar from '@/app/components/navbar';
 import SubletCard from '@/app/ui/sublet-card';
+import Pagination from '@/app/ui/pagination';
 import {
   MOCK_SUBLETS,
   ITEMS_PER_PAGE,
@@ -39,6 +38,54 @@ const SEASON_COLORS: Record<Season, { on: string; off: string }> = {
 };
 
 const MAX_PRICE = 5000;
+
+// ─── Active filter chips ──────────────────────────────────────────────────────
+
+type Chip = { key: string; label: string; onRemove: () => void };
+
+function buildChips(
+  filters: FilterState,
+  update: (partial: Partial<FilterState>) => void
+): Chip[] {
+  const chips: Chip[] = [];
+
+  switch (filters.sortOrder) {
+    case 'asc':
+      chips.push({ key: 'sort', label: 'Price ↑', onRemove: () => update({ sortOrder: 'new' }) });
+      break;
+    case 'desc':
+      chips.push({ key: 'sort', label: 'Price ↓', onRemove: () => update({ sortOrder: 'new' }) });
+      break;
+  }
+
+  for (const season of filters.seasons) {
+    chips.push({
+      key: `season-${season}`,
+      label: season,
+      onRemove: () => update({ seasons: filters.seasons.filter((s) => s !== season) }),
+    });
+  }
+
+  if (filters.minPrice > 0 || filters.maxPrice < MAX_PRICE) {
+    const lo = `$${filters.minPrice.toLocaleString()}`;
+    const hi = filters.maxPrice >= MAX_PRICE ? '5k+' : `$${filters.maxPrice.toLocaleString()}`;
+    chips.push({
+      key: 'price',
+      label: `${lo} – ${hi}`,
+      onRemove: () => update({ minPrice: 0, maxPrice: MAX_PRICE }),
+    });
+  }
+
+  if (filters.query.trim()) {
+    chips.push({
+      key: 'query',
+      label: `"${filters.query}"`,
+      onRemove: () => update({ query: '' }),
+    });
+  }
+
+  return chips;
+}
 
 // ─── Map Placeholder ──────────────────────────────────────────────────────────
 
@@ -73,20 +120,20 @@ function MapPlaceholder({ count }: { count: number }) {
         {/* Popup card */}
         <div className="bg-white rounded-xl shadow-lg border border-gray-200 px-4 py-3 mb-3 text-center">
           <p className="text-sm font-semibold text-gray-800">Evanston, IL</p>
-          <p className="text-xs text-indigo-600 font-medium mt-0.5">
+          <p className="text-xs text-violet-800 font-medium mt-0.5">
             {count} listing{count !== 1 ? 's' : ''} found
           </p>
         </div>
         {/* Pin */}
-        <div className="w-8 h-8 bg-indigo-600 rounded-full border-2 border-white shadow-md flex items-center justify-center">
+        <div className="w-8 h-8 bg-violet-800 rounded-full border-2 border-white shadow-md flex items-center justify-center">
           <MapPinIcon className="w-4 h-4 text-white" />
         </div>
-        <div className="w-3 h-1.5 bg-indigo-400/40 rounded-full mt-0.5 scale-x-150" />
+        <div className="w-3 h-1.5 bg-violet-500/40 rounded-full mt-0.5 scale-x-150" />
         {/* Scatter pins */}
-        <div className="absolute -top-16 -left-20 w-5 h-5 bg-indigo-400 rounded-full border-2 border-white shadow opacity-80" />
-        <div className="absolute -top-8 left-16 w-5 h-5 bg-indigo-500 rounded-full border-2 border-white shadow opacity-80" />
-        <div className="absolute top-8 -left-24 w-4 h-4 bg-indigo-300 rounded-full border-2 border-white shadow opacity-70" />
-        <div className="absolute -top-20 left-4 w-4 h-4 bg-indigo-400 rounded-full border-2 border-white shadow opacity-70" />
+        <div className="absolute -top-16 -left-20 w-5 h-5 bg-violet-500 rounded-full border-2 border-white shadow opacity-80" />
+        <div className="absolute -top-8 left-16 w-5 h-5 bg-violet-600 rounded-full border-2 border-white shadow opacity-80" />
+        <div className="absolute top-8 -left-24 w-4 h-4 bg-violet-400 rounded-full border-2 border-white shadow opacity-70" />
+        <div className="absolute -top-20 left-4 w-4 h-4 bg-violet-500 rounded-full border-2 border-white shadow opacity-70" />
       </div>
     </div>
   );
@@ -97,9 +144,11 @@ function MapPlaceholder({ count }: { count: number }) {
 function FilterSidebar({
   filters,
   onChange,
+  onClose,
 }: {
   filters: FilterState;
   onChange: (f: Partial<FilterState>) => void;
+  onClose: () => void;
 }) {
   const toggleSeason = (s: Season) => {
     const next = filters.seasons.includes(s)
@@ -110,7 +159,18 @@ function FilterSidebar({
 
   return (
     <div className="h-full overflow-y-auto px-4 py-5 space-y-6">
-      <p className="text-base font-bold text-gray-900">Filters</p>
+
+      <div className="flex items-center justify-between">
+        <p className="text-base font-bold text-gray-900">Filters</p>
+        <button
+          onClick={onClose}
+          className="p-1.5 rounded-lg  hover:bg-gray-100 
+                        transition-colors text-gray-400 hover:text-gray-600"
+          aria-label="Close filters"
+        >
+          <XMarkIcon className="w-4 h-4" />
+        </button>
+      </div>
 
       {/* Price range */}
       <div className="space-y-3">
@@ -133,7 +193,7 @@ function FilterSidebar({
             step={50}
             value={filters.minPrice}
             onChange={(e) => onChange({ minPrice: Number(e.target.value) })}
-            className="w-full accent-indigo-600"
+            className="w-full accent-violet-800 cursor-pointer"
           />
           <label className="text-xs text-gray-500 flex justify-between">
             <span>Max</span>
@@ -148,7 +208,7 @@ function FilterSidebar({
             step={50}
             value={filters.maxPrice}
             onChange={(e) => onChange({ maxPrice: Number(e.target.value) })}
-            className="w-full accent-indigo-600"
+            className="w-full accent-violet-800 cursor-pointer"
           />
         </div>
 
@@ -163,7 +223,7 @@ function FilterSidebar({
               className={clsx(
                 'flex-1 text-xs py-1.5 rounded-lg border font-medium transition-colors',
                 filters.sortOrder === 'desc'
-                  ? 'bg-indigo-600 text-white border-indigo-600'
+                  ? 'bg-violet-800 text-white border-violet-800'
                   : 'border-gray-200 text-gray-600 hover:bg-gray-50'
               )}
             >
@@ -176,7 +236,7 @@ function FilterSidebar({
               className={clsx(
                 'flex-1 text-xs py-1.5 rounded-lg border font-medium transition-colors',
                 filters.sortOrder === 'asc'
-                  ? 'bg-indigo-600 text-white border-indigo-600'
+                  ? 'bg-violet-800 text-white border-violet-800'
                   : 'border-gray-200 text-gray-600 hover:bg-gray-50'
               )}
             >
@@ -241,79 +301,6 @@ function FilterSidebar({
   );
 }
 
-// ─── Pagination ───────────────────────────────────────────────────────────────
-
-function Pagination({
-  page,
-  total,
-  perPage,
-  onChange,
-}: {
-  page: number;
-  total: number;
-  perPage: number;
-  onChange: (p: number) => void;
-}) {
-  const totalPages = Math.max(1, Math.ceil(total / perPage));
-  if (totalPages <= 1) return null;
-
-  const pages: (number | '…')[] = [];
-  if (totalPages <= 7) {
-    for (let i = 1; i <= totalPages; i++) pages.push(i);
-  } else {
-    pages.push(1);
-    if (page > 3) pages.push('…');
-    for (let i = Math.max(2, page - 1); i <= Math.min(totalPages - 1, page + 1); i++) {
-      pages.push(i);
-    }
-    if (page < totalPages - 2) pages.push('…');
-    pages.push(totalPages);
-  }
-
-  return (
-    <div className="flex items-center justify-center gap-1 pt-6 pb-2">
-      <button
-        onClick={() => onChange(page - 1)}
-        disabled={page === 1}
-        className="p-1.5 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100 disabled:opacity-30 disabled:pointer-events-none transition-colors"
-        aria-label="Previous page"
-      >
-        <ChevronLeftIcon className="w-4 h-4" />
-      </button>
-
-      {pages.map((p, i) =>
-        p === '…' ? (
-          <span key={`ellipsis-${i}`} className="w-8 text-center text-xs text-gray-400">
-            …
-          </span>
-        ) : (
-          <button
-            key={p}
-            onClick={() => onChange(p as number)}
-            className={clsx(
-              'w-8 h-8 rounded-lg text-xs font-medium transition-colors',
-              page === p
-                ? 'bg-indigo-600 text-white'
-                : 'text-gray-600 hover:bg-gray-100'
-            )}
-          >
-            {p}
-          </button>
-        )
-      )}
-
-      <button
-        onClick={() => onChange(page + 1)}
-        disabled={page === totalPages}
-        className="p-1.5 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100 disabled:opacity-30 disabled:pointer-events-none transition-colors"
-        aria-label="Next page"
-      >
-        <ChevronRightIcon className="w-4 h-4" />
-      </button>
-    </div>
-  );
-}
-
 // ─── Browse Page ──────────────────────────────────────────────────────────────
 
 const DEFAULT_FILTERS: FilterState = {
@@ -348,17 +335,13 @@ export default function BrowsePage() {
 
   const pageSublets = filtered.slice((page - 1) * ITEMS_PER_PAGE, page * ITEMS_PER_PAGE);
 
-  const hasActiveFilters =
-    filters.query !== '' ||
-    filters.minPrice > 0 ||
-    filters.maxPrice < MAX_PRICE ||
-    filters.sortOrder !== 'new' ||
-    filters.seasons.length > 0;
+  const activeChips = buildChips(filters, updateFilters);
+  const hasActiveFilters = activeChips.length > 0;
 
   return (
     <div className="flex flex-col h-screen overflow-hidden bg-white">
-      {/* Navbar */}
-      <NavBar onMenuClick={() => setShowFilters((v) => !v)} />
+      {/* Navbar — hamburger opens nav sidebar; filter sidebar is toggled by the Filters button below */}
+      <NavBar />
 
       {/* Body */}
       <div className="flex flex-1 overflow-hidden relative">
@@ -369,7 +352,7 @@ export default function BrowsePage() {
             showFilters ? 'translate-x-0 shadow-xl' : '-translate-x-full'
           )}
         >
-          <FilterSidebar filters={filters} onChange={updateFilters} />
+          <FilterSidebar filters={filters} onChange={updateFilters} onClose={() => setShowFilters(false)} />
         </aside>
 
         {/* Backdrop */}
@@ -389,23 +372,23 @@ export default function BrowsePage() {
               <button
                 onClick={() => setShowFilters((v) => !v)}
                 className={clsx(
-                  'flex items-center gap-1.5 px-3 py-2 rounded-xl border text-sm font-medium shrink-0 transition-colors',
+                  'flex items-center gap-1.5 px-3 py-2 rounded-xl border text-sm font-medium shrink-0 transition-colors cursor-pointer',
                   showFilters || hasActiveFilters
-                    ? 'bg-indigo-600 text-white border-indigo-600'
+                    ? 'bg-violet-800 text-white border-violet-800 hover:bg-violet-600 hover:border-violet-600'
                     : 'border-gray-200 text-gray-600 hover:bg-gray-50'
                 )}
               >
                 <FunnelIcon className="w-4 h-4" />
                 Filters
-                {hasActiveFilters && (
-                  <span className="ml-0.5 w-4 h-4 rounded-full bg-white/30 text-xs flex items-center justify-center font-bold">
-                    !
+                {/* {hasActiveFilters && (
+                  <span className="ml-0.5 w-5 h-5 rounded-full bg-white/30 text-xs flex items-center justify-center font-bold">
+                    <p>{activeChips.length.toString()}</p>
                   </span>
-                )}
+                )} */}
               </button>
 
               {/* Search input */}
-              <div className="flex-1 flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-xl px-3 h-10 focus-within:border-indigo-400 focus-within:bg-white transition-colors">
+              <div className="flex-1 flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-xl px-3 h-10 focus-within:border-violet-500 focus-within:bg-white transition-colors">
                 <MagnifyingGlassIcon className="w-4 h-4 text-gray-400 shrink-0" />
                 <input
                   type="text"
@@ -429,44 +412,21 @@ export default function BrowsePage() {
             {/* Active filter chips */}
             {hasActiveFilters && (
               <div className="flex flex-wrap gap-1.5 items-center">
-                <span className="text-xs text-gray-400">Active:</span>
-                {filters.sortOrder !== 'new' && (
-                  <span className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-700 font-medium">
-                    Price {filters.sortOrder === 'asc' ? '↑' : '↓'}
-                    <button onClick={() => updateFilters({ sortOrder: 'new' })}>
-                      <XMarkIcon className="w-3 h-3" />
-                    </button>
-                  </span>
-                )}
-                {filters.seasons.map((s) => (
+                {activeChips.map((chip) => (
                   <span
-                    key={s}
-                    className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-700 font-medium"
+                    key={chip.key}
+                    className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-violet-50 text-violet-900 font-medium"
                   >
-                    {s}
-                    <button
-                      onClick={() =>
-                        updateFilters({ seasons: filters.seasons.filter((x) => x !== s) })
-                      }
-                    >
+                    {chip.label}
+                    <button onClick={chip.onRemove} 
+                            aria-label={`Remove ${chip.label} filter`}
+                            className='cursor-pointer'>
                       <XMarkIcon className="w-3 h-3" />
                     </button>
                   </span>
                 ))}
-                {(filters.minPrice > 0 || filters.maxPrice < MAX_PRICE) && (
-                  <span className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-700 font-medium">
-                    ${filters.minPrice.toLocaleString()}–
-                    {filters.maxPrice >= MAX_PRICE ? '5k+' : `$${filters.maxPrice.toLocaleString()}`}
-                    <button onClick={() => updateFilters({ minPrice: 0, maxPrice: MAX_PRICE })}>
-                      <XMarkIcon className="w-3 h-3" />
-                    </button>
-                  </span>
-                )}
                 <button
-                  onClick={() => {
-                    setFilters(DEFAULT_FILTERS);
-                    setPage(1);
-                  }}
+                  onClick={() => { setFilters(DEFAULT_FILTERS); setPage(1); }}
                   className="text-xs text-gray-400 hover:text-red-500 transition-colors ml-1"
                 >
                   Clear all
@@ -476,7 +436,7 @@ export default function BrowsePage() {
           </div>
 
           {/* Results count */}
-          <div className="px-4 pt-3 pb-1 shrink-0">
+          <div className="mt-2 px-4 pt-3 pb-1 shrink-0">
             <p className="text-xs text-gray-400">
               {filtered.length === 0
                 ? 'No listings found'
@@ -495,7 +455,7 @@ export default function BrowsePage() {
                 <p className="text-gray-400 text-sm mt-1">Try adjusting your search or filters</p>
                 <button
                   onClick={() => { setFilters(DEFAULT_FILTERS); setPage(1); }}
-                  className="mt-4 text-sm text-indigo-600 hover:text-indigo-700 font-medium"
+                  className="mt-4 text-sm text-violet-800 hover:text-violet-900 font-medium"
                 >
                   Clear all filters
                 </button>

@@ -58,7 +58,7 @@ function PreviewCard({ sublet }: { sublet: (typeof MOCK_SUBLETS)[0] }) {
             </span>
           ))}
         </div>
-        <p className="mt-1.5 font-bold text-indigo-600 text-xs">
+        <p className="mt-1.5 font-bold text-violet-800 text-xs">
           ${sublet.price.toLocaleString()}
           <span className="text-[10px] font-normal text-gray-400">/mo</span>
         </p>
@@ -98,25 +98,25 @@ export default function Home() {
       {/* ─── Navbar ─── */}
       <header className="sticky top-0 z-30 bg-white/90 backdrop-blur-md border-b border-gray-100">
         <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
-          <span className="text-xl font-bold text-indigo-600 tracking-tight">SubletNU</span>
+          <span className="text-xl font-bold text-violet-800 tracking-tight">SubletNU</span>
           <nav className="hidden md:flex items-center gap-6 text-sm text-gray-600">
-            <Link href="/browse" className="hover:text-indigo-600 transition-colors">
+            <Link href="/browse" className="hover:text-violet-800 transition-colors">
               Browse
             </Link>
-            <a href="#how-it-works" className="hover:text-indigo-600 transition-colors">
+            <a href="#how-it-works" className="hover:text-violet-800 transition-colors">
               How it Works
             </a>
-            <a href="#why" className="hover:text-indigo-600 transition-colors">
+            <a href="#why" className="hover:text-violet-800 transition-colors">
               Why SubletNU
             </a>
           </nav>
           <div className="flex items-center gap-3">
-            <button className="hidden sm:block text-sm text-gray-600 hover:text-indigo-600 transition-colors">
+            <button className="hidden sm:block text-sm text-gray-600 hover:text-violet-800 transition-colors">
               Sign In
             </button>
             <Link
               href="/browse"
-              className="text-sm font-medium bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition-colors"
+              className="text-sm font-medium bg-violet-800 text-white px-4 py-2 rounded-lg hover:bg-violet-900 transition-colors"
             >
               Browse Listings
             </Link>
@@ -127,13 +127,13 @@ export default function Home() {
       {/* ─── Hero ─── */}
       <section className="max-w-6xl mx-auto px-6 pt-16 pb-12">
         <div className="text-center mb-10">
-          <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-indigo-600 bg-indigo-50 px-3 py-1 rounded-full mb-4">
+          <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-violet-800 bg-violet-50 px-3 py-1 rounded-full mb-4">
             <StarIcon className="w-3.5 h-3.5" />
             Northwestern&apos;s housing marketplace
           </span>
           <h1 className="text-4xl sm:text-5xl font-bold text-gray-900 leading-tight mb-4">
             Find your perfect{' '}
-            <span className="text-indigo-600">Northwestern sublet</span>
+            <span className="text-violet-800">Northwestern sublet</span>
           </h1>
           <p className="text-lg text-gray-500 max-w-xl mx-auto">
             Browse short-term sublets listed by other Northwestern students.
@@ -142,7 +142,7 @@ export default function Home() {
           <div className="flex flex-col sm:flex-row gap-3 justify-center mt-8">
             <Link
               href="/browse"
-              className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-indigo-600 text-white font-semibold rounded-xl hover:bg-indigo-700 transition-colors shadow-sm"
+              className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-violet-800 text-white font-semibold rounded-xl hover:bg-violet-900 transition-colors shadow-sm"
             >
               <MagnifyingGlassIcon className="w-4 h-4" />
               Browse Listings
@@ -202,7 +202,7 @@ export default function Home() {
                 {[1, 2, 3].map((n) => (
                   <div
                     key={n}
-                    className={`rounded-full transition-all ${n === 1 ? 'w-5 h-1.5 bg-indigo-600' : 'w-1.5 h-1.5 bg-gray-300'}`}
+                    className={`rounded-full transition-all ${n === 1 ? 'w-5 h-1.5 bg-violet-800' : 'w-1.5 h-1.5 bg-gray-300'}`}
                   />
                 ))}
               </div>
@@ -235,12 +235,12 @@ export default function Home() {
               <div className="relative flex flex-col items-center z-10">
                 <div className="bg-white rounded-xl shadow-lg border border-gray-200 px-3 py-2 mb-2 text-center">
                   <p className="text-[11px] font-semibold text-gray-800">Evanston, IL</p>
-                  <p className="text-[10px] text-indigo-600 font-medium">12 listings nearby</p>
+                  <p className="text-[10px] text-violet-800 font-medium">12 listings nearby</p>
                 </div>
-                <div className="w-6 h-6 bg-indigo-600 rounded-full border-2 border-white shadow-md flex items-center justify-center">
+                <div className="w-6 h-6 bg-violet-800 rounded-full border-2 border-white shadow-md flex items-center justify-center">
                   <div className="w-2 h-2 bg-white rounded-full" />
                 </div>
-                <div className="w-2 h-2 bg-indigo-600/30 rounded-full mt-0.5 scale-x-150" />
+                <div className="w-2 h-2 bg-violet-800/30 rounded-full mt-0.5 scale-x-150" />
               </div>
             </div>
           </div>
@@ -260,10 +260,10 @@ export default function Home() {
             {HOW_IT_WORKS.map(({ n, title, body }) => (
               <div
                 key={n}
-                className="bg-gray-800 rounded-2xl p-6 border border-gray-700 hover:border-indigo-500 transition-colors"
+                className="bg-gray-800 rounded-2xl p-6 border border-gray-700 hover:border-violet-600 transition-colors"
               >
                 <div className="flex items-center gap-3 mb-3">
-                  <span className="w-8 h-8 rounded-full bg-indigo-600 text-white text-sm font-bold flex items-center justify-center shrink-0">
+                  <span className="w-8 h-8 rounded-full bg-violet-800 text-white text-sm font-bold flex items-center justify-center shrink-0">
                     {n}
                   </span>
                   <p className="font-semibold text-white">{title}</p>
@@ -299,7 +299,7 @@ export default function Home() {
                 </a>
                 <Link
                   href="/browse"
-                  className="inline-flex items-center justify-center px-5 py-2.5 bg-indigo-600 text-white font-semibold rounded-xl hover:bg-indigo-700 transition-colors text-sm"
+                  className="inline-flex items-center justify-center px-5 py-2.5 bg-violet-800 text-white font-semibold rounded-xl hover:bg-violet-900 transition-colors text-sm"
                 >
                   Browse Listings
                 </Link>
@@ -307,11 +307,11 @@ export default function Home() {
             </div>
 
             {/* Room photo placeholder */}
-            <div className="rounded-2xl overflow-hidden h-72 md:h-80 bg-linear-to-br from-indigo-50 via-indigo-100 to-indigo-200 flex items-center justify-center border border-indigo-100">
+            <div className="rounded-2xl overflow-hidden h-72 md:h-80 bg-linear-to-br from-violet-50 via-violet-200 to-violet-300 flex items-center justify-center border border-violet-200">
               <div className="text-center">
-                <div className="w-20 h-20 rounded-2xl bg-indigo-200 flex items-center justify-center mx-auto mb-3">
+                <div className="w-20 h-20 rounded-2xl bg-violet-300 flex items-center justify-center mx-auto mb-3">
                   <svg
-                    className="w-10 h-10 text-indigo-500"
+                    className="w-10 h-10 text-violet-600"
                     fill="none"
                     stroke="currentColor"
                     strokeWidth={1.2}
@@ -324,7 +324,7 @@ export default function Home() {
                     />
                   </svg>
                 </div>
-                <p className="text-indigo-400 text-sm font-medium">Your next home away from home</p>
+                <p className="text-violet-500 text-sm font-medium">Your next home away from home</p>
               </div>
             </div>
           </div>
@@ -334,7 +334,7 @@ export default function Home() {
       {/* ─── Footer ─── */}
       <footer className="border-t border-gray-100 py-8 px-6">
         <div className="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4 text-sm text-gray-400">
-          <span className="font-semibold text-indigo-600">SubletNU</span>
+          <span className="font-semibold text-violet-800">SubletNU</span>
           <span>© 2026 SubletNU. Built for Wildcats, by Wildcats.</span>
           <div className="flex gap-4">
             <a href="#" className="hover:text-gray-600 transition-colors">Privacy</a>

@@ -2,7 +2,9 @@
 
 Title:
 Date:
-Summary:
+
+## Summary:
+
 Issue and Context:
 
 > Concise description

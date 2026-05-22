@@ -1,6 +1,6 @@
 'use client';
 
-import { use } from 'react';
+import { use, useState } from 'react';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import {
@@ -11,7 +11,7 @@ import {
   HeartIcon,
 } from '@heroicons/react/24/outline';
 import { HeartIcon as HeartSolid } from '@heroicons/react/24/solid';
-import { useState } from 'react';
+import NavBar from '@/app/components/navbar';
 import { MOCK_SUBLETS } from '@/app/lib/mock-data';
 
 const SEASON_COLORS: Record<string, string> = {
@@ -33,32 +33,32 @@ export default function SubletDetailPage({
   if (!sublet) notFound();
 
   return (
-    <div className="min-h-screen bg-gray-50 font-sans">
-      {/* Sticky header */}
-      <header className="sticky top-0 z-30 bg-white border-b border-gray-200 h-15 flex items-center justify-between px-4">
-        <Link
-          href="/browse"
-          className="flex items-center gap-1.5 text-sm text-gray-600 hover:text-indigo-600 transition-colors"
-        >
-          <ArrowLeftIcon className="w-4 h-4" />
-          Back to Browse
-        </Link>
-        <span className="text-base font-bold text-indigo-600 tracking-tight">SubletNU</span>
-        <button
-          onClick={() => setFavorited((f) => !f)}
-          aria-label={favorited ? 'Remove from favorites' : 'Save to favorites'}
-          className="flex items-center gap-1.5 text-sm font-medium px-3 py-1.5 rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors"
-        >
-          {favorited ? (
-            <HeartSolid className="w-4 h-4 text-red-500" />
-          ) : (
-            <HeartIcon className="w-4 h-4 text-gray-400" />
-          )}
-          {favorited ? 'Saved' : 'Save'}
-        </button>
-      </header>
+    <div className="min-h-screen bg-gray-50 font-sans flex flex-col">
+      <NavBar />
 
-      <div className="max-w-3xl mx-auto px-4 py-8 space-y-6">
+      <div className="max-w-3xl mx-auto w-full px-4 py-6 space-y-6">
+        {/* Back + Save row */}
+        <div className="flex items-center justify-between">
+          <Link
+            href="/browse"
+            className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-violet-800 transition-colors"
+          >
+            <ArrowLeftIcon className="w-4 h-4" />
+            Back to Browse
+          </Link>
+          <button
+            onClick={() => setFavorited((f) => !f)}
+            aria-label={favorited ? 'Remove from favorites' : 'Save to favorites'}
+            className="flex items-center gap-1.5 text-sm font-medium px-3 py-1.5 rounded-lg border border-gray-200 bg-white hover:bg-gray-50 transition-colors"
+          >
+            {favorited ? (
+              <HeartSolid className="w-4 h-4 text-red-500" />
+            ) : (
+              <HeartIcon className="w-4 h-4 text-gray-400" />
+            )}
+            {favorited ? 'Saved' : 'Save'}
+          </button>
+        </div>
         {/* Hero image placeholder */}
         <div
           className="w-full h-56 sm:h-72 rounded-2xl flex items-center justify-center"
@@ -82,7 +82,7 @@ export default function SubletDetailPage({
             </div>
           </div>
           <div className="text-right shrink-0">
-            <p className="text-2xl font-bold text-indigo-600">
+            <p className="text-2xl font-bold text-violet-800">
               ${sublet.price.toLocaleString()}
             </p>
             <p className="text-xs text-gray-400">per month</p>
@@ -134,14 +134,14 @@ export default function SubletDetailPage({
         </div>
 
         {/* CTA */}
-        <div className="bg-indigo-50 rounded-2xl border border-indigo-100 p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <div className="bg-violet-50 rounded-2xl border border-violet-200 p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div>
             <p className="font-semibold text-gray-900 text-sm">Interested in this listing?</p>
             <p className="text-xs text-gray-500 mt-0.5">
               Contact the lister to ask questions or arrange a viewing.
             </p>
           </div>
-          <button className="shrink-0 px-5 py-2.5 bg-indigo-600 text-white text-sm font-semibold rounded-xl hover:bg-indigo-700 transition-colors shadow-sm">
+          <button className="shrink-0 px-5 py-2.5 bg-violet-800 text-white text-sm font-semibold rounded-xl hover:bg-violet-900 transition-colors shadow-sm">
             Contact Lister
           </button>
         </div>

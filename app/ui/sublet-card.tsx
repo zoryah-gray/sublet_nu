@@ -56,9 +56,9 @@ export default function SubletCard({ sublet }: { sublet: Sublet }) {
         className="absolute top-2.5 right-2.5 z-10 p-1.5 rounded-full bg-white/80 backdrop-blur-sm hover:bg-white transition-colors shadow-sm"
       >
         {favorited ? (
-          <HeartSolid className="w-4 h-4 text-red-500" />
+          <HeartSolid className="w-4 h-4 text-red-500 cursor-pointer" />
         ) : (
-          <HeartIcon className="w-4 h-4 text-gray-400 group-hover:text-gray-500 transition-colors" />
+          <HeartIcon className="w-4 h-4 text-gray-400 group-hover:text-gray-500 transition-colors cursor-pointer" />
         )}
       </button>
 
@@ -94,7 +94,7 @@ export default function SubletCard({ sublet }: { sublet: Sublet }) {
             ))}
           </div>
 
-          <p className="mt-2.5 font-bold text-indigo-600 text-sm">
+          <p className="mt-2.5 font-bold text-violet-800 text-sm">
             ${sublet.price.toLocaleString()}
             <span className="text-xs font-normal text-gray-400">/mo</span>
           </p>
