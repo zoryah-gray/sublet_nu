@@ -12,7 +12,6 @@ import NavBar from '@/app/components/navbar';
 import SubletCard from '@/app/ui/sublet-card';
 import Pagination from '@/app/ui/pagination';
 import {
-  MOCK_SUBLETS,
   ITEMS_PER_PAGE,
   getFilteredSublets,
   type Season,
