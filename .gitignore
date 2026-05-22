@@ -32,7 +32,11 @@ yarn-error.log*
 
 # env files (can opt-in for committing if needed)
 .env*
+.env*.local
 .env
+
+# reference images
+references_mockups
 
 # vercel
 .vercel
