@@ -1,17 +1,26 @@
 'use client';
 
-import { useState, useMemo } from 'react';
-import clsx from 'clsx';
+import { useState, useMemo, useEffect } from 'react';
+import { format } from 'date-fns';
+import type { DateRange } from 'react-day-picker';
 import {
   MagnifyingGlassIcon,
   MapPinIcon,
   FunnelIcon,
   XMarkIcon,
 } from '@heroicons/react/24/outline';
+import { CalendarIcon } from 'lucide-react';
 import NavBar from '@/app/components/navbar';
 import SubletCard from '@/app/ui/sublet-card';
 import Pagination from '@/app/ui/pagination';
+import { Slider } from '@/components/ui/slider';
+import { Button } from '@/components/ui/button';
+import { Separator } from '@/components/ui/separator';
+import { Calendar } from '@/components/ui/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { cn } from '@/lib/utils';
 import {
+  MOCK_SUBLETS,
   ITEMS_PER_PAGE,
   getFilteredSublets,
   type Season,
@@ -20,27 +29,50 @@ import {
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
+type PlaceType = 'entire' | 'private';
+
 type FilterState = {
   query: string;
   minPrice: number;
   maxPrice: number;
   sortOrder: SortOrder;
   seasons: Season[];
+  dateRange: DateRange | undefined;
+  placeType: PlaceType | undefined;
 };
+
+// ─── Constants ────────────────────────────────────────────────────────────────
 
 const ALL_SEASONS: Season[] = ['Fall', 'Winter', 'Spring', 'Summer'];
 const SEASON_COLORS: Record<Season, { on: string; off: string }> = {
-  Fall: { on: 'bg-amber-500 text-white border-amber-500', off: 'border-amber-200 text-amber-700 hover:bg-amber-50' },
-  Winter: { on: 'bg-sky-500 text-white border-sky-500', off: 'border-sky-200 text-sky-700 hover:bg-sky-50' },
-  Spring: { on: 'bg-green-500 text-white border-green-500', off: 'border-green-200 text-green-700 hover:bg-green-50' },
+  Fall:   { on: 'bg-amber-500 text-white border-amber-500',   off: 'border-amber-200 text-amber-700 hover:bg-amber-50' },
+  Winter: { on: 'bg-sky-500 text-white border-sky-500',       off: 'border-sky-200 text-sky-700 hover:bg-sky-50' },
+  Spring: { on: 'bg-green-500 text-white border-green-500',   off: 'border-green-200 text-green-700 hover:bg-green-50' },
   Summer: { on: 'bg-orange-500 text-white border-orange-500', off: 'border-orange-200 text-orange-700 hover:bg-orange-50' },
 };
 
 const MAX_PRICE = 5000;
+const BUCKET_COUNT = 20;
+const BUCKET_WIDTH = MAX_PRICE / BUCKET_COUNT;
+
+const PRICE_BUCKETS = (() => {
+  const buckets = new Array<number>(BUCKET_COUNT).fill(0);
+  for (const s of MOCK_SUBLETS) {
+    const idx = Math.min(Math.floor(s.price / BUCKET_WIDTH), BUCKET_COUNT - 1);
+    buckets[idx]++;
+  }
+  return buckets;
+})();
+const BUCKET_MAX = Math.max(...PRICE_BUCKETS, 1);
+
+const PLACE_TYPES: { value: PlaceType; label: string; description: string }[] = [
+  { value: 'entire',  label: 'Entire place',  description: 'A place all to yourself' },
+  { value: 'private', label: 'Private place', description: 'Your own room in a home or a hotel, plus some shared common spaces' },
+];
 
 // ─── Active filter chips ──────────────────────────────────────────────────────
 
-type Chip = { key: string; label: string; onRemove: () => void };
+type Chip = { key: string; category: string; label: string; onRemove: () => void };
 
 function buildChips(
   filters: FilterState,
@@ -48,42 +80,127 @@ function buildChips(
 ): Chip[] {
   const chips: Chip[] = [];
 
-  switch (filters.sortOrder) {
-    case 'asc':
-      chips.push({ key: 'sort', label: 'Price ↑', onRemove: () => update({ sortOrder: 'new' }) });
-      break;
-    case 'desc':
-      chips.push({ key: 'sort', label: 'Price ↓', onRemove: () => update({ sortOrder: 'new' }) });
-      break;
-  }
+  if (filters.sortOrder === 'asc')
+    chips.push({ key: 'sort', category: 'Sort', label: 'Price ↑', onRemove: () => update({ sortOrder: 'new' }) });
+  if (filters.sortOrder === 'desc')
+    chips.push({ key: 'sort', category: 'Sort', label: 'Price ↓', onRemove: () => update({ sortOrder: 'new' }) });
 
-  for (const season of filters.seasons) {
+  for (const season of filters.seasons)
     chips.push({
       key: `season-${season}`,
+      category: 'Quarter',
       label: season,
       onRemove: () => update({ seasons: filters.seasons.filter((s) => s !== season) }),
     });
-  }
 
   if (filters.minPrice > 0 || filters.maxPrice < MAX_PRICE) {
     const lo = `$${filters.minPrice.toLocaleString()}`;
     const hi = filters.maxPrice >= MAX_PRICE ? '5k+' : `$${filters.maxPrice.toLocaleString()}`;
     chips.push({
       key: 'price',
+      category: 'Price',
       label: `${lo} – ${hi}`,
       onRemove: () => update({ minPrice: 0, maxPrice: MAX_PRICE }),
     });
   }
 
-  if (filters.query.trim()) {
+  if (filters.query.trim())
     chips.push({
       key: 'query',
+      category: 'Search',
       label: `"${filters.query}"`,
       onRemove: () => update({ query: '' }),
     });
+
+  if (filters.dateRange?.from) {
+    const from = format(filters.dateRange.from, 'MMM d, yyyy');
+    const to = filters.dateRange.to ? format(filters.dateRange.to, 'MMM d, yyyy') : '…';
+    chips.push({
+      key: 'date',
+      category: 'Dates',
+      label: `${from} – ${to}`,
+      onRemove: () => update({ dateRange: undefined }),
+    });
   }
 
+  if (filters.placeType)
+    chips.push({
+      key: 'place',
+      category: 'Place',
+      label: filters.placeType === 'entire' ? 'Entire place' : 'Private place',
+      onRemove: () => update({ placeType: undefined }),
+    });
+
   return chips;
+}
+
+// ─── Price Histogram ──────────────────────────────────────────────────────────
+
+function PriceHistogram({ minPrice, maxPrice }: { minPrice: number; maxPrice: number }) {
+  return (
+    <div className="flex items-end gap-0.5 mb-0! mbe-0! h-10 pointer-events-none" aria-hidden>
+      {PRICE_BUCKETS.map((count, i) => {
+        const bucketMid = (i + 0.5) * BUCKET_WIDTH;
+        const inRange = bucketMid >= minPrice && bucketMid <= maxPrice;
+        const heightPct = (count / BUCKET_MAX) * 100;
+        return (
+          <div
+            key={i}
+            className={cn(
+              'flex-1 rounded-t-xs transition-colors duration-150',
+              inRange ? 'bg-primary/40' : 'bg-gray-200'
+            )}
+            style={{ height: heightPct > 0 ? `${heightPct}%` : 0, minHeight: count > 0 ? 2 : 0 }}
+          />
+        );
+      })}
+    </div>
+  );
+}
+
+// ─── Price Input ──────────────────────────────────────────────────────────────
+
+function PriceInput({
+  label,
+  value,
+  min,
+  max,
+  onChange,
+}: {
+  label: string;
+  value: number;
+  min: number;
+  max: number;
+  onChange: (v: number) => void;
+}) {
+  const [draft, setDraft] = useState(String(value));
+
+  useEffect(() => {
+    setDraft(String(value));
+  }, [value]);
+
+  const commit = () => {
+    const n = parseInt(draft.replace(/[^0-9]/g, ''), 10);
+    const clamped = isNaN(n) ? value : Math.max(min, Math.min(max, n));
+    onChange(clamped);
+    setDraft(String(clamped));
+  };
+
+  return (
+    <div className="flex-1 rounded-xl border border-gray-200 px-3 py-2">
+      <p className="text-xs text-gray-400">{label}</p>
+      <div className="flex items-center gap-0.5 mt-0.5">
+        <span className="text-sm font-medium text-gray-900">$</span>
+        <input
+          className="w-0 flex-1 text-sm font-medium text-gray-900 bg-transparent outline-none cursor-text"
+          value={draft}
+          onChange={(e) => setDraft(e.target.value.replace(/[^0-9]/g, ''))}
+          onBlur={commit}
+          onKeyDown={(e) => e.key === 'Enter' && commit()}
+        />
+      </div>
+    </div>
+  );
 }
 
 // ─── Map Placeholder ──────────────────────────────────────────────────────────
@@ -91,21 +208,15 @@ function buildChips(
 function MapPlaceholder({ count }: { count: number }) {
   return (
     <div className="w-full h-full bg-slate-100 relative overflow-hidden flex items-center justify-center">
-      {/* Tile grid */}
       <div className="absolute inset-0 opacity-25">
         {Array.from({ length: 12 }).map((_, row) => (
           <div key={row} className="flex">
             {Array.from({ length: 8 }).map((_, col) => (
-              <div
-                key={col}
-                className="border border-slate-300 bg-slate-50"
-                style={{ width: 64, height: 64 }}
-              />
+              <div key={col} className="border border-slate-300 bg-slate-50" style={{ width: 64, height: 64 }} />
             ))}
           </div>
         ))}
       </div>
-      {/* Roads */}
       <div className="absolute inset-0 opacity-30 pointer-events-none">
         <div className="absolute top-1/4 left-0 right-0 h-0.5 bg-slate-300" />
         <div className="absolute top-1/2 left-0 right-0 h-0.5 bg-slate-400" />
@@ -114,21 +225,17 @@ function MapPlaceholder({ count }: { count: number }) {
         <div className="absolute left-1/2 top-0 bottom-0 w-0.5 bg-slate-400" />
         <div className="absolute left-3/4 top-0 bottom-0 w-0.5 bg-slate-300" />
       </div>
-      {/* Pin cluster */}
       <div className="relative z-10 flex flex-col items-center">
-        {/* Popup card */}
         <div className="bg-white rounded-xl shadow-lg border border-gray-200 px-4 py-3 mb-3 text-center">
           <p className="text-sm font-semibold text-gray-800">Evanston, IL</p>
           <p className="text-xs text-violet-800 font-medium mt-0.5">
             {count} listing{count !== 1 ? 's' : ''} found
           </p>
         </div>
-        {/* Pin */}
         <div className="w-8 h-8 bg-violet-800 rounded-full border-2 border-white shadow-md flex items-center justify-center">
-          <MapPinIcon className="w-4 h-4 text-white" />
+          <MapPinIcon className="size-4 text-white" />
         </div>
         <div className="w-3 h-1.5 bg-violet-500/40 rounded-full mt-0.5 scale-x-150" />
-        {/* Scatter pins */}
         <div className="absolute -top-16 -left-20 w-5 h-5 bg-violet-500 rounded-full border-2 border-white shadow opacity-80" />
         <div className="absolute -top-8 left-16 w-5 h-5 bg-violet-600 rounded-full border-2 border-white shadow opacity-80" />
         <div className="absolute top-8 -left-24 w-4 h-4 bg-violet-400 rounded-full border-2 border-white shadow opacity-70" />
@@ -149,6 +256,8 @@ function FilterSidebar({
   onChange: (f: Partial<FilterState>) => void;
   onClose: () => void;
 }) {
+  const [calendarOpen, setCalendarOpen] = useState(false);
+
   const toggleSeason = (s: Season) => {
     const next = filters.seasons.includes(s)
       ? filters.seasons.filter((x) => x !== s)
@@ -157,100 +266,114 @@ function FilterSidebar({
   };
 
   return (
-    <div className="h-full overflow-y-auto px-4 py-5 space-y-6">
+    <div className="h-full flex flex-col">
 
-      <div className="flex items-center justify-between">
-        <p className="text-base font-bold text-gray-900">Filters</p>
-        <button
-          onClick={onClose}
-          className="p-1.5 rounded-lg  hover:bg-gray-100 
-                        transition-colors text-gray-400 hover:text-gray-600"
-          aria-label="Close filters"
-        >
-          <XMarkIcon className="w-4 h-4" />
-        </button>
+      {/* Sticky header */}
+      <div className="flex-none px-4 pt-5 pb-3 bg-background">
+        <div className="flex justify-between">
+          <div className="flex items-center gap-1.5">
+            <p className="text-2xl font-bold text-gray-900">Filters</p>
+          </div>
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            onClick={onClose}
+            aria-label="Close filters"
+            className="text-gray-400 hover:text-gray-600"
+          >
+            <XMarkIcon className="size-5" />
+          </Button>
+        </div>
+        <Separator className="mt-3" />
       </div>
 
-      {/* Price range */}
-      <div className="space-y-3">
+      {/* Scrollable body */}
+      <div className="flex-1 overflow-y-auto px-4 pb-5 space-y-6">
+
+      {/* ── Price Range ── */}
+      <div className="space-y-2">
         <div className="flex items-center justify-between">
-          <p className="text-sm font-semibold text-gray-700">Price</p>
-          <span className="text-xs text-gray-400 font-medium">
-            ${filters.minPrice.toLocaleString()} – ${filters.maxPrice === MAX_PRICE ? '5,000+' : filters.maxPrice.toLocaleString()}
-          </span>
+          <h2 className="text-lg font-semibold text-gray-900">Price Range</h2>
+          <button
+            onClick={() => onChange({ minPrice: 0, maxPrice: MAX_PRICE })}
+            className="text-xs text-gray-400 hover:text-gray-600 transition-colors"
+          >
+            Reset
+          </button>
         </div>
-        <p className="text-xs text-gray-400">Per month</p>
-        <div className="space-y-2">
-          <label className="text-xs text-gray-500 flex justify-between">
-            <span>Min</span>
-            <span className="font-medium text-gray-700">${filters.minPrice.toLocaleString()}</span>
-          </label>
-          <input
-            type="range"
-            min={0}
-            max={MAX_PRICE}
-            step={50}
+
+        {/* Distribution histogram */}
+        <PriceHistogram minPrice={filters.minPrice} maxPrice={filters.maxPrice} />
+
+        {/* Dual-thumb range slider */}
+        <Slider
+          min={0}
+          max={MAX_PRICE}
+          step={50}
+          value={[filters.minPrice, filters.maxPrice]}
+          onValueChange={(values) => onChange({ minPrice: values[0], maxPrice: values[1] })}
+        />
+
+        {/* Min / Max text inputs */}
+        <div className="flex gap-2 pt-1">
+          <PriceInput
+            label="Min price"
             value={filters.minPrice}
-            onChange={(e) => onChange({ minPrice: Number(e.target.value) })}
-            className="w-full accent-violet-800 cursor-pointer"
-          />
-          <label className="text-xs text-gray-500 flex justify-between">
-            <span>Max</span>
-            <span className="font-medium text-gray-700">
-              {filters.maxPrice >= MAX_PRICE ? '$5,000+' : `$${filters.maxPrice.toLocaleString()}`}
-            </span>
-          </label>
-          <input
-            type="range"
             min={0}
-            max={MAX_PRICE}
-            step={50}
+            max={filters.maxPrice}
+            onChange={(v) => onChange({ minPrice: v })}
+          />
+          <PriceInput
+            label="Max price"
             value={filters.maxPrice}
-            onChange={(e) => onChange({ maxPrice: Number(e.target.value) })}
-            className="w-full accent-violet-800 cursor-pointer"
+            min={filters.minPrice}
+            max={MAX_PRICE}
+            onChange={(v) => onChange({ maxPrice: v })}
           />
         </div>
 
-        {/* Sort */}
-        <div className="pt-1 space-y-1.5">
-          <p className="text-xs text-gray-400">Sort by price</p>
+        {/* Sort by price */}
+        <div className="pt-2 space-y-1.5">
+          <p className="text-xs text-muted-foreground">Sort by price</p>
           <div className="flex gap-2">
-            <button
-              onClick={() =>
-                onChange({ sortOrder: filters.sortOrder === 'desc' ? 'new' : 'desc' })
-              }
-              className={clsx(
-                'flex-1 text-xs py-1.5 rounded-lg border font-medium transition-colors',
-                filters.sortOrder === 'desc'
-                  ? 'bg-violet-800 text-white border-violet-800'
-                  : 'border-gray-200 text-gray-600 hover:bg-gray-50'
-              )}
+            <Button
+              variant={filters.sortOrder === 'desc' ? 'default' : 'outline'}
+              size="xs"
+              className="flex-1"
+              onClick={() => onChange({ sortOrder: filters.sortOrder === 'desc' ? 'new' : 'desc' })}
             >
               Descending ↓
-            </button>
-            <button
-              onClick={() =>
-                onChange({ sortOrder: filters.sortOrder === 'asc' ? 'new' : 'asc' })
-              }
-              className={clsx(
-                'flex-1 text-xs py-1.5 rounded-lg border font-medium transition-colors',
-                filters.sortOrder === 'asc'
-                  ? 'bg-violet-800 text-white border-violet-800'
-                  : 'border-gray-200 text-gray-600 hover:bg-gray-50'
-              )}
+            </Button>
+            <Button
+              variant={filters.sortOrder === 'asc' ? 'default' : 'outline'}
+              size="xs"
+              className="flex-1"
+              onClick={() => onChange({ sortOrder: filters.sortOrder === 'asc' ? 'new' : 'asc' })}
             >
               Ascending ↑
-            </button>
+            </Button>
           </div>
         </div>
       </div>
 
-      {/* Divider */}
-      <div className="border-t border-gray-100" />
+      <Separator />
 
-      {/* Duration / Season */}
+      {/* ── Duration ── */}
       <div className="space-y-3">
-        <p className="text-sm font-semibold text-gray-700">Duration</p>
+        <h2 className="text-lg font-semibold text-gray-900">Duration</h2>
+
+        {/* Quarter chips */}
+        <div className="flex items-center justify-between">
+          <h3 className="text-sm font-semibold text-gray-900">Quarter Available</h3>
+          {filters.seasons.length > 0 && (
+            <button
+              onClick={() => onChange({ seasons: [] })}
+              className="text-xs text-gray-400 hover:text-gray-600 transition-colors"
+            >
+              Reset
+            </button>
+          )}
+        </div>
         <div className="flex flex-wrap gap-2">
           {ALL_SEASONS.map((season) => {
             const active = filters.seasons.includes(season);
@@ -258,7 +381,7 @@ function FilterSidebar({
               <button
                 key={season}
                 onClick={() => toggleSeason(season)}
-                className={clsx(
+                className={cn(
                   'text-xs px-3 py-1.5 rounded-full border font-medium transition-colors',
                   active ? SEASON_COLORS[season].on : SEASON_COLORS[season].off
                 )}
@@ -268,21 +391,100 @@ function FilterSidebar({
             );
           })}
         </div>
-        {filters.seasons.length > 0 && (
-          <button
-            onClick={() => onChange({ seasons: [] })}
-            className="text-xs text-gray-400 hover:text-gray-600 transition-colors"
-          >
-            Clear seasons
-          </button>
-        )}
+
+        {/* Date range picker */}
+        <div className="space-y-1.5 mt-4">
+          <div className="flex items-center justify-between">
+            <h3 className="text-sm font-semibold text-gray-900">Dates Available</h3>
+            {filters.dateRange?.from && (
+              <button
+                onClick={() => onChange({ dateRange: undefined })}
+                className="text-xs text-gray-400 hover:text-gray-600 transition-colors"
+              >
+                Reset
+              </button>
+            )}
+          </div>
+          <Popover open={calendarOpen} onOpenChange={setCalendarOpen}>
+            <PopoverTrigger asChild>
+              <Button variant="outline" size="sm" className="w-full justify-start text-left font-normal">
+                <CalendarIcon className="size-3.5 text-muted-foreground shrink-0" />
+                {filters.dateRange?.from ? (
+                  <span className="text-xs">
+                    {format(filters.dateRange.from, 'MMM d')}
+                    {' – '}
+                    {filters.dateRange.to ? format(filters.dateRange.to, 'MMM d, yyyy') : '…'}
+                  </span>
+                ) : (
+                  <span className="text-xs text-muted-foreground">Pick a date range</span>
+                )}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="start">
+              <Calendar
+                mode="range"
+                selected={filters.dateRange}
+                onSelect={(range) => onChange({ dateRange: range ?? undefined })}
+                numberOfMonths={1}
+              />
+              {filters.dateRange?.from && (
+                <div className="border-t px-3 py-2">
+                  <Button
+                    variant="ghost"
+                    size="xs"
+                    className="w-full text-xs text-muted-foreground"
+                    onClick={() => { onChange({ dateRange: undefined }); setCalendarOpen(false); }}
+                  >
+                    Clear dates
+                  </Button>
+                </div>
+              )}
+            </PopoverContent>
+          </Popover>
+        </div>
       </div>
 
-      {/* Divider */}
-      <div className="border-t border-gray-100" />
+      <Separator />
+
+      {/* ── Type of Place ── */}
+      <div className="space-y-3">
+        <div className="flex items-center justify-between">
+          <h2 className="text-lg font-semibold text-gray-900">Type of Place</h2>
+          {filters.placeType && (
+            <button
+              onClick={() => onChange({ placeType: undefined })}
+              className="text-xs text-gray-400 hover:text-gray-600 transition-colors"
+            >
+              Reset
+            </button>
+          )}
+        </div>
+        <div className="grid grid-cols-2 md:grid-cols-1 gap-2">
+          {PLACE_TYPES.map((place) => (
+            <button
+              key={place.value}
+              onClick={() => onChange({ placeType: filters.placeType === place.value ? undefined : place.value })}
+              className={cn(
+                'flex flex-col items-start text-left p-3 rounded-xl transition-all',
+                filters.placeType === place.value
+                  ? 'border-2 border-primary'
+                  : 'border border-gray-200 hover:border-border'
+              )}
+            >
+              <span className="text-sm font-semibold text-gray-900">{place.label}</span>
+              <span className="text-xs text-gray-500 mt-1 leading-relaxed">{place.description}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <Separator className='mb-3' />
 
       {/* Reset all */}
-      <button
+      <Button
+        variant="outline"
+        size="sm"
+        className="w-full"
         onClick={() =>
           onChange({
             minPrice: 0,
@@ -290,12 +492,14 @@ function FilterSidebar({
             sortOrder: 'new',
             seasons: [],
             query: '',
+            dateRange: undefined,
+            placeType: undefined,
           })
         }
-        className="w-full text-xs py-2 rounded-lg border border-gray-200 text-gray-500 hover:bg-gray-50 transition-colors"
       >
         Reset all filters
-      </button>
+      </Button>
+    </div>
     </div>
   );
 }
@@ -308,6 +512,8 @@ const DEFAULT_FILTERS: FilterState = {
   maxPrice: MAX_PRICE,
   sortOrder: 'new',
   seasons: [],
+  dateRange: undefined,
+  placeType: undefined,
 };
 
 export default function BrowsePage() {
@@ -333,25 +539,27 @@ export default function BrowsePage() {
   );
 
   const pageSublets = filtered.slice((page - 1) * ITEMS_PER_PAGE, page * ITEMS_PER_PAGE);
-
   const activeChips = buildChips(filters, updateFilters);
   const hasActiveFilters = activeChips.length > 0;
 
   return (
     <div className="flex flex-col h-screen overflow-hidden bg-white">
-      {/* Navbar — hamburger opens nav sidebar; filter sidebar is toggled by the Filters button below */}
       <NavBar />
 
-      {/* Body */}
       <div className="flex flex-1 overflow-hidden relative">
+
         {/* ── Filter sidebar ── */}
         <aside
-          className={clsx(
+          className={cn(
             'absolute inset-y-0 left-0 z-20 w-72 bg-white border-r border-gray-200 transition-transform duration-200 shrink-0',
             showFilters ? 'translate-x-0 shadow-xl' : '-translate-x-full'
           )}
         >
-          <FilterSidebar filters={filters} onChange={updateFilters} onClose={() => setShowFilters(false)} />
+          <FilterSidebar
+            filters={filters}
+            onChange={updateFilters}
+            onClose={() => setShowFilters(false)}
+          />
         </aside>
 
         {/* Backdrop */}
@@ -364,37 +572,35 @@ export default function BrowsePage() {
 
         {/* ── Main content ── */}
         <main className="flex-1 overflow-y-auto flex flex-col">
-          {/* Search + active filters bar */}
+
+          {/* Search + filter bar */}
           <div className="px-4 pt-4 pb-3 border-b border-gray-100 space-y-2 shrink-0">
             <div className="flex items-center gap-2">
+
               {/* Filter toggle */}
-              <button
+              <Button
+                variant={showFilters || hasActiveFilters ? 'default' : 'outline'}
+                size="sm"
                 onClick={() => setShowFilters((v) => !v)}
-                className={clsx(
-                  'flex items-center gap-1.5 px-3 py-2 rounded-xl border text-sm font-medium shrink-0 transition-colors cursor-pointer',
-                  showFilters || hasActiveFilters
-                    ? 'bg-violet-800 text-white border-violet-800 hover:bg-violet-600 hover:border-violet-600'
-                    : 'border-gray-200 text-gray-600 hover:bg-gray-50'
+                className={cn(
+                  'shrink-0',
+                  (showFilters || hasActiveFilters) &&
+                    'bg-violet-800 text-white border-violet-800 hover:bg-violet-900 hover:border-violet-900'
                 )}
               >
-                <FunnelIcon className="w-4 h-4" />
-                Filters
-                {/* {hasActiveFilters && (
-                  <span className="ml-0.5 w-5 h-5 rounded-full bg-white/30 text-xs flex items-center justify-center font-bold">
-                    <p>{activeChips.length.toString()}</p>
-                  </span>
-                )} */}
-              </button>
+                <FunnelIcon className="size-4" />
+                <span className="hidden sm:inline">Filters</span>
+              </Button>
 
               {/* Search input */}
-              <div className="flex-1 flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-xl px-3 h-10 focus-within:border-violet-500 focus-within:bg-white transition-colors">
-                <MagnifyingGlassIcon className="w-4 h-4 text-gray-400 shrink-0" />
+              <div className="flex-1 flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-xl px-3 h-9 focus-within:border-violet-500 focus-within:bg-white transition-colors">
+                <MagnifyingGlassIcon className="size-4 text-gray-400 shrink-0" />
                 <input
                   type="text"
                   placeholder="Search by title, address, or neighborhood…"
                   value={filters.query}
                   onChange={(e) => updateFilters({ query: e.target.value })}
-                  className="flex-1 bg-transparent text-sm text-gray-800 placeholder-gray-400 outline-none"
+                  className="flex-1 bg-transparent text-sm text-gray-800 placeholder-gray-400 outline-none cursor-text"
                 />
                 {filters.query && (
                   <button
@@ -402,40 +608,45 @@ export default function BrowsePage() {
                     className="text-gray-400 hover:text-gray-600"
                     aria-label="Clear search"
                   >
-                    <XMarkIcon className="w-4 h-4" />
+                    <XMarkIcon className="size-4" />
                   </button>
                 )}
               </div>
             </div>
 
-            {/* Active filter chips */}
+            {/* ── Active filter chips ── */}
             {hasActiveFilters && (
               <div className="flex flex-wrap gap-1.5 items-center">
                 {activeChips.map((chip) => (
                   <span
                     key={chip.key}
-                    className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-violet-50 text-violet-900 font-medium"
+                    className="inline-flex items-center gap-1.5 rounded-full border border-gray-200 bg-white px-2.5 py-1 text-xs shadow-sm"
                   >
-                    {chip.label}
-                    <button onClick={chip.onRemove} 
-                            aria-label={`Remove ${chip.label} filter`}
-                            className='cursor-pointer'>
-                      <XMarkIcon className="w-3 h-3" />
+                    <span className="size-1.5 rounded-full bg-primary shrink-0" />
+                    <span className="font-semibold text-gray-700">{chip.category}</span>
+                    <span className="text-gray-500">{chip.label}</span>
+                    <button
+                      onClick={chip.onRemove}
+                      aria-label={`Remove ${chip.label} filter`}
+                      className="text-gray-400 hover:text-gray-700 transition-colors"
+                    >
+                      <XMarkIcon className="size-3" />
                     </button>
                   </span>
                 ))}
                 <button
                   onClick={() => { setFilters(DEFAULT_FILTERS); setPage(1); }}
-                  className="text-xs text-gray-400 hover:text-red-500 transition-colors ml-1"
+                  className="inline-flex items-center gap-1 text-xs font-medium text-gray-400 hover:text-red-500 transition-colors ml-1"
                 >
-                  Clear all
+                  Clear Filters
+                  <XMarkIcon className="size-3" />
                 </button>
               </div>
             )}
           </div>
 
           {/* Results count */}
-          <div className="mt-2 px-4 pt-3 pb-1 shrink-0">
+          <div className="px-4 pt-3 pb-1 shrink-0">
             <p className="text-xs text-gray-400">
               {filtered.length === 0
                 ? 'No listings found'
@@ -448,7 +659,7 @@ export default function BrowsePage() {
             {pageSublets.length === 0 ? (
               <div className="flex flex-col items-center justify-center h-64 text-center">
                 <div className="w-16 h-16 rounded-2xl bg-gray-100 flex items-center justify-center mb-4">
-                  <MagnifyingGlassIcon className="w-8 h-8 text-gray-300" />
+                  <MagnifyingGlassIcon className="size-8 text-gray-300" />
                 </div>
                 <p className="text-gray-500 font-medium">No listings match your filters</p>
                 <p className="text-gray-400 text-sm mt-1">Try adjusting your search or filters</p>
@@ -460,7 +671,7 @@ export default function BrowsePage() {
                 </button>
               </div>
             ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
                 {pageSublets.map((sublet) => (
                   <SubletCard key={sublet.id} sublet={sublet} />
                 ))}
