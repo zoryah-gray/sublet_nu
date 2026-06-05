@@ -1,4 +1,4 @@
-import { BrowsePageSkeleton } from '@/app/ui/skeletons';
+import { BrowsePageSkeleton } from '@/app/components/skeletons';
 
 export default function Loading() {
   return <BrowsePageSkeleton />;

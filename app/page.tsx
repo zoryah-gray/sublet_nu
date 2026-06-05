@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { MagnifyingGlassIcon, MapPinIcon, StarIcon } from '@heroicons/react/24/outline';
 import { MOCK_SUBLETS } from '@/app/lib/mock-data';
 
-const SEASON_COLORS: Record<string, string> = {
+const QUARTER_COLORS: Record<string, string> = {
   Fall: 'bg-amber-50 text-amber-700',
   Winter: 'bg-sky-50 text-sky-700',
   Spring: 'bg-green-50 text-green-700',
@@ -12,29 +12,37 @@ const SEASON_COLORS: Record<string, string> = {
 function PreviewCard({ sublet }: { sublet: (typeof MOCK_SUBLETS)[0] }) {
   return (
     <div className="rounded-xl border border-gray-200 bg-white overflow-hidden shadow-sm">
-      <div
-        className="w-full h-28 flex items-center justify-center"
-        style={{ backgroundColor: `hsl(${sublet.imageHue} 60% 92%)` }}
-      >
+      {sublet.featuredImage ? (
+        <img
+          src={sublet.featuredImage}
+          alt={sublet.title}
+          className="w-full h-28 object-cover"
+        />
+      ) : (
         <div
-          className="w-10 h-10 rounded-xl flex items-center justify-center"
-          style={{ backgroundColor: `hsl(${sublet.imageHue} 55% 75%)` }}
+          className="w-full h-28 flex items-center justify-center"
+          style={{ backgroundColor: `hsl(${sublet.imageHue} 60% 92%)` }}
         >
-          <svg
-            className="w-5 h-5 text-white"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth={1.5}
-            viewBox="0 0 24 24"
+          <div
+            className="w-10 h-10 rounded-xl flex items-center justify-center"
+            style={{ backgroundColor: `hsl(${sublet.imageHue} 55% 75%)` }}
           >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              d="M2.25 12l8.954-8.955c.44-.439 1.152-.439 1.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75"
-            />
-          </svg>
+            <svg
+              className="w-5 h-5 text-white"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth={1.5}
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M2.25 12l8.954-8.955c.44-.439 1.152-.439 1.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75"
+              />
+            </svg>
+          </div>
         </div>
-      </div>
+      )}
       <div className="p-2.5">
         <p className="font-semibold text-gray-900 text-xs leading-snug truncate">
           {sublet.title}
@@ -49,10 +57,10 @@ function PreviewCard({ sublet }: { sublet: (typeof MOCK_SUBLETS)[0] }) {
           <span>{sublet.baths} bath</span>
         </div>
         <div className="flex flex-wrap gap-1 mt-1.5">
-          {sublet.seasons.slice(0, 2).map((s) => (
+          {sublet.quarters.slice(0, 2).map((s) => (
             <span
               key={s}
-              className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${SEASON_COLORS[s]}`}
+              className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${QUARTER_COLORS[s]}`}
             >
               {s}
             </span>

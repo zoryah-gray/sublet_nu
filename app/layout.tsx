@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
+import { NotificationsProvider } from "@/app/context/notifications";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -17,7 +18,7 @@ export const metadata: Metadata = {
     template: '%s | SubletNU',
     default: 'Home | SubletNU'
   },
-  description: "SubletNU, the permier app for Northwestern students to find, list, and acquire short term sublets from other Northwestern students.",
+  description: "SubletNU, the premier app for Northwestern students to find, list, and acquire short term sublets from other Northwestern students.",
 };
 
 export default function RootLayout({
@@ -30,7 +31,9 @@ export default function RootLayout({
       lang="en"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col">{children}</body>
+      <body className="min-h-full flex flex-col">
+        <NotificationsProvider>{children}</NotificationsProvider>
+      </body>
     </html>
   );
 }

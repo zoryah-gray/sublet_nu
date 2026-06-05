@@ -23,8 +23,6 @@ const NAV_LINKS = [
   { name: 'Home', href: '/', Outline: HomeIcon, Solid: HomeSolid },
   { name: 'Browse', href: '/browse', Outline: MagnifyingGlassIcon, Solid: MagnifyingGlassSolid },
   { name: 'Dashboard', href: '/dashboard', Outline: Squares2X2Icon, Solid: Squares2X2Solid },
-  { name: 'Favorites', href: '/favorites', Outline: HeartIcon, Solid: HeartSolid },
-  { name: 'Messages', href: '/messages', Outline: ChatBubbleOutline, Solid: ChatBubbleSolid },
 ];
 
 function isActive(href: string, pathname: string): boolean {

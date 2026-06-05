@@ -1,10 +1,10 @@
-'use client';
-
-import { useState } from 'react';
+// Server component — no 'use client'.
+// Only the heart button (CardFavoriteButton) is a client island.
 import Link from 'next/link';
-import { HeartIcon, MapPinIcon } from '@heroicons/react/24/outline';
-import { HeartIcon as HeartSolid } from '@heroicons/react/24/solid';
+import { MapPinIcon } from '@heroicons/react/24/outline';
+import { CURRENT_USER_ID } from '@/app/lib/mock-data';
 import type { Sublet } from '@/app/lib/mock-data';
+import CardFavoriteButton from '@/app/components/sublet/card-favorite-button';
 
 function PlaceholderImage({ hue }: { hue: string }) {
   return (
@@ -34,36 +34,53 @@ function PlaceholderImage({ hue }: { hue: string }) {
   );
 }
 
-const SEASON_COLORS: Record<string, string> = {
-  Fall: 'bg-amber-50 text-amber-700',
+const QUARTER_COLORS: Record<string, string> = {
+  Fall:   'bg-amber-50 text-amber-700',
   Winter: 'bg-sky-50 text-sky-700',
   Spring: 'bg-green-50 text-green-700',
   Summer: 'bg-orange-50 text-orange-700',
 };
 
-export default function SubletCard({ sublet }: { sublet: Sublet }) {
-  const [favorited, setFavorited] = useState(false);
+interface SubletCardProps {
+  sublet: Sublet;
+  initialFavorited?: boolean;
+  // Callback is only used when this card appears inside a client tree (e.g. FavoritesPage).
+  // When rendered server-side (e.g. browse), it is omitted.
+  onFavoriteChange?: (favorited: boolean) => void;
+}
+
+export default function SubletCard({
+  sublet,
+  initialFavorited = false,
+  onFavoriteChange,
+}: SubletCardProps) {
+  const isOwner = sublet.ownerId === CURRENT_USER_ID;
 
   return (
     <div className="relative rounded-xl border border-gray-200 bg-white overflow-hidden hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200 group">
-      <button
-        onClick={(e) => {
-          e.preventDefault();
-          e.stopPropagation();
-          setFavorited((f) => !f);
-        }}
-        aria-label={favorited ? 'Remove from favorites' : 'Save to favorites'}
-        className="absolute top-2.5 right-2.5 z-10 p-1.5 rounded-full bg-white/80 backdrop-blur-sm hover:bg-white transition-colors shadow-sm"
-      >
-        {favorited ? (
-          <HeartSolid className="w-4 h-4 text-red-500 cursor-pointer" />
-        ) : (
-          <HeartIcon className="w-4 h-4 text-gray-400 group-hover:text-gray-500 transition-colors cursor-pointer" />
-        )}
-      </button>
+      {isOwner && (
+        <span className="absolute top-2.5 left-2.5 z-10 text-[11px] font-semibold px-2 py-0.5 rounded-full bg-violet-700 text-white shadow-sm">
+          Your listing
+        </span>
+      )}
+
+      {/* Client island — only the heart button is hydrated */}
+      <CardFavoriteButton
+        initialFavorited={initialFavorited}
+        onFavoriteChange={onFavoriteChange}
+        isOwner={isOwner}
+      />
 
       <Link href={`/sublet/${sublet.id}`} className="block">
-        <PlaceholderImage hue={sublet.imageHue} />
+        {sublet.featuredImage ? (
+          <img
+            src={sublet.featuredImage}
+            alt={sublet.title}
+            className="w-full h-40 object-cover"
+          />
+        ) : (
+          <PlaceholderImage hue={sublet.imageHue} />
+        )}
 
         <div className="p-3">
           <p className="font-semibold text-gray-900 text-sm leading-snug truncate">
@@ -71,7 +88,7 @@ export default function SubletCard({ sublet }: { sublet: Sublet }) {
           </p>
 
           <div className="flex items-center gap-1 mt-0.5 text-xs text-gray-400">
-            <MapPinIcon className="w-3 h-3 flex-shrink-0" />
+            <MapPinIcon className="w-3 h-3 shrink-0" />
             <span className="truncate">{sublet.neighborhood}</span>
           </div>
 
@@ -79,17 +96,15 @@ export default function SubletCard({ sublet }: { sublet: Sublet }) {
             <span>{sublet.beds === 0 ? 'Studio' : `${sublet.beds} bed`}</span>
             <span className="text-gray-200">·</span>
             <span>{sublet.baths} bath</span>
-            <span className="text-gray-200">·</span>
-            <span>{sublet.sqft.toLocaleString()} sqft</span>
           </div>
 
           <div className="flex flex-wrap gap-1 mt-2">
-            {sublet.seasons.map((season) => (
+            {sublet.quarters.map((quarter) => (
               <span
-                key={season}
-                className={`text-xs px-2 py-0.5 rounded-full font-medium ${SEASON_COLORS[season]}`}
+                key={quarter}
+                className={`text-xs px-2 py-0.5 rounded-full font-medium ${QUARTER_COLORS[quarter]}`}
               >
-                {season}
+                {quarter}
               </span>
             ))}
           </div>
