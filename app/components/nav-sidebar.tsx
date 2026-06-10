@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import clsx from 'clsx';
+import { isActive } from '../lib/utils';
 import {
   HomeIcon,
   MagnifyingGlassIcon,
@@ -24,11 +25,6 @@ const NAV_LINKS = [
   { name: 'Browse', href: '/browse', Outline: MagnifyingGlassIcon, Solid: MagnifyingGlassSolid },
   { name: 'Dashboard', href: '/dashboard', Outline: Squares2X2Icon, Solid: Squares2X2Solid },
 ];
-
-function isActive(href: string, pathname: string): boolean {
-  if (href === '/') return pathname === '/';
-  return pathname === href || pathname.startsWith(href + '/');
-}
 
 export default function NavSidebar({
   show,
@@ -61,7 +57,7 @@ export default function NavSidebar({
       >
         {/* Header */}
         <div className="h-15 flex items-center justify-between px-4 border-b border-gray-100 shrink-0">
-          <span className="text-base font-bold text-violet-800 tracking-tight">SubletNU</span>
+          <Link href='/' className='text-base font-bold text-violet-800 tracking-tight'>SubletNU</Link>
           <button
             onClick={onClose}
             className="p-1.5 rounded-lg hover:bg-gray-100 transition-colors text-gray-400 hover:text-gray-600"

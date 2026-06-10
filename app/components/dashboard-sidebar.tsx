@@ -9,6 +9,7 @@ import {
   ListBulletIcon,
   HeartIcon,
   ChatBubbleLeftEllipsisIcon,
+  ArrowsRightLeftIcon,
   Cog6ToothIcon,
   ArrowRightStartOnRectangleIcon,
   ChevronLeftIcon,
@@ -19,26 +20,27 @@ import {
   ListBulletIcon as ListBulletSolid,
   HeartIcon as HeartSolid,
   ChatBubbleLeftEllipsisIcon as ChatBubbleSolid,
+  ArrowsRightLeftIcon as ArrowsRightLeftSolid,
   Cog6ToothIcon as CogSolid,
 } from '@heroicons/react/24/solid';
 import { Separator } from '@/components/ui/separator';
+import { MOCK_USER_PROFILES, CURRENT_USER_ID } from '@/app/lib/mock-data';
+import { isActive } from '@/app/lib/utils';
 
 const NAV_LINKS = [
-  { name: 'Profile',      href: '/dashboard',  Outline: UserCircleIcon, Solid: UserCircleSolid },
-  { name: 'My Listings',  href: '/listings', Outline: ListBulletIcon, Solid: ListBulletSolid },
-  { name: 'Favorites',    href: '/favorites', Outline: HeartIcon, Solid: HeartSolid },
-  { name: 'Messages',     href: '/messages',   Outline: ChatBubbleLeftEllipsisIcon, Solid: ChatBubbleSolid },
-  { name: 'Settings',     href: '/dashboard/settings', Outline: Cog6ToothIcon, Solid: CogSolid },
+  { name: 'Dashboard', href: '/dashboard', Outline: UserCircleIcon, Solid: UserCircleSolid },
+  { name: 'My Listings', href: '/listings', Outline: ListBulletIcon, Solid: ListBulletSolid },
+  { name: 'Favorites', href: '/favorites', Outline: HeartIcon, Solid: HeartSolid },
+  { name: 'Requests & Matches', href: '/requests', Outline: ArrowsRightLeftIcon, Solid: ArrowsRightLeftSolid },
+  { name: 'Messages', href: '/messages', Outline: ChatBubbleLeftEllipsisIcon, Solid: ChatBubbleSolid },
+  { name: 'Settings', href: '/settings', Outline: Cog6ToothIcon, Solid: CogSolid },
 ];
-
-function isActive(href: string, pathname: string): boolean {
-  if (href === '/dashboard') return pathname === '/dashboard';
-  return pathname === href || pathname.startsWith(href + '/');
-}
 
 export default function DashboardSidebar() {
   const pathname = usePathname();
   const [collapsed, setCollapsed] = useState(false);
+  // TODO: replace with getUser() from next/auth when auth is wired up
+  const currentUser = MOCK_USER_PROFILES.find((p) => p.id === CURRENT_USER_ID);
 
   useLayoutEffect(() => {
     const mql = window.matchMedia('(max-width: 1023px)');
@@ -103,12 +105,12 @@ export default function DashboardSidebar() {
       {/* User footer */}
       <div className={cn('px-2 py-3 flex items-center gap-2.5', collapsed ? 'justify-center' : '')}>
         <div className="w-8 h-8 rounded-full bg-violet-100 flex items-center justify-center shrink-0">
-          <span className="text-xs font-bold text-violet-800">JD</span>
+          <span className="text-xs font-bold text-violet-800">{currentUser?.avatarInitials ?? 'JD'}</span>
         </div>
         {!collapsed && (
           <div className="flex-1 min-w-0">
-            <p className="text-xs font-semibold text-gray-900 truncate">Jon Doe</p>
-            <p className="text-[11px] text-gray-400 truncate">jonodono@gmail.com</p>
+            <p className="text-xs font-semibold text-gray-900 truncate">{currentUser?.name ?? 'Jon Doe'}</p>
+            <p className="text-[11px] text-gray-400 truncate">{currentUser?.email ?? 'jonodono@gmail.com'}</p>
           </div>
         )}
         {!collapsed && (

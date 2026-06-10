@@ -1,7 +1,8 @@
 'use client';
 
 import { createContext, useContext, useState, useMemo } from 'react';
-import { MOCK_NOTIFICATIONS, type Notification } from '@/app/lib/mock-data';
+import { MOCK_NOTIFICATIONS } from '@/app/lib/mock-data';
+import type { Notification } from '@/app/lib/definitions';
 
 type NotificationsContextValue = {
   notifications: Notification[];

@@ -58,8 +58,18 @@ export default function FavoritesScrollCard() {
 
   return (
     <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
-      <div className="px-5 py-4 border-b border-gray-100">
+      <div className="px-5 py-4 flex justify-between border-b border-gray-100">
         <h2 className="text-base font-semibold text-gray-900">Favorites</h2>
+        <Button
+          variant="ghost"
+          size="sm"
+          className=" text-violet-700 hover:text-violet-900 hover:bg-violet-50"
+          asChild
+        >
+          <Link href="/favorites">
+            View All
+          </Link>
+        </Button>
       </div>
       <div className="p-5">
         <div className="relative">

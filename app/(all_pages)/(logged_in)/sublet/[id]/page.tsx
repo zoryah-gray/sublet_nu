@@ -1,19 +1,14 @@
 import { notFound } from 'next/navigation';
+import Link from 'next/link';
 import { MapPinIcon, HomeIcon, CalendarDaysIcon, BoltIcon, UsersIcon } from '@heroicons/react/24/outline';
 import { BedDouble, Bath } from 'lucide-react';
 import { MOCK_SUBLETS, MOCK_USER_PROFILES, CURRENT_USER_ID } from '@/app/lib/mock-data';
+import { QUARTER_COLORS } from '@/app/lib/definitions';
 import BackButton from '@/app/components/sublet/back-button';
 import FavoriteButton from '@/app/components/sublet/favorite-button';
 import OwnerControls from '@/app/components/sublet/owner-controls';
 import RequestMatchModal from '@/app/components/sublet/request-match-modal';
 import ImageGallery from '@/app/components/sublet/image-gallery';
-
-const QUARTER_COLORS: Record<string, string> = {
-  Fall:   'bg-amber-50 text-amber-700 border-amber-200',
-  Winter: 'bg-sky-50 text-sky-700 border-sky-200',
-  Spring: 'bg-green-50 text-green-700 border-green-200',
-  Summer: 'bg-orange-50 text-orange-700 border-orange-200',
-};
 
 export default async function SubletDetailPage({
   params,
@@ -206,7 +201,13 @@ export default async function SubletDetailPage({
             <div>
               <p className="font-semibold text-gray-900 text-sm">Interested in this listing?</p>
               <p className="text-xs text-gray-500 mt-0.5">
-                Send a match request to {ownerName} to start the conversation.
+                Send a match request to{' '}
+                {owner ? (
+                  <Link href={`/profile/${sublet.ownerId}`} className="text-violet-700 hover:text-violet-900 transition-colors font-medium">
+                    {ownerName}
+                  </Link>
+                ) : ownerName}{' '}
+                to start the conversation.
               </p>
             </div>
             <div className="shrink-0 w-full sm:w-auto">

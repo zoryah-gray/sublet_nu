@@ -1,66 +1,44 @@
-export type Quarter = 'Fall' | 'Winter' | 'Spring' | 'Summer';
-export type SortOrder = 'asc' | 'desc' | 'new';
-export type SubletStatus = 'active' | 'archived' | 'draft';
-export type MatchStatus = 'pending' | 'accepted' | 'declined' | 'confirmed';
+// Re-export all domain types from the single source of truth.
+// Import types from '@/app/lib/definitions' directly in new code;
+// these re-exports exist for backward compatibility.
+export type {
+  Quarter,
+  SortOrder,
+  SubletStatus,
+  MatchStatus,
+  NotificationKind,
+  Sublet,
+  MatchRequest,
+  UserProfile,
+  Notification,
+  Thread,
+  MessageMedia,
+  Message,
+  ListingFormData,
+} from '@/app/lib/definitions';
+
+import type {
+  Quarter,
+  SortOrder,
+  SubletStatus,
+  MatchStatus,
+  Sublet,
+  MatchRequest,
+  UserProfile,
+  Notification,
+  Thread,
+  Message,
+} from '@/app/lib/definitions';
 
 // The currently logged-in user (replace with real auth session later)
 export const CURRENT_USER_ID = 'user-jon';
-
-export interface Sublet {
-  id: string;
-  title: string;
-  address: string;
-  neighborhood: string;
-  price: number;
-  beds: number;
-  baths: number;
-  quarters: Quarter[];
-  startDate: string;
-  placeType?: 'entire' | 'private';
-  roommates?: number;
-  utilitiesIncluded?: boolean;
-  utilitiesCost?: number;
-  featuredImage?: string;
-  videos?: string[];
-  endDate: string;
-  description: string;
-  imageHue: string;
-  images?: string[];
-  ownerId: string;
-  status: SubletStatus;
-}
-
-export interface MatchRequest {
-  id: string;
-  subletId: string;
-  subletTitle: string;
-  ownerId: string;
-  requesterId: string;
-  requesterName: string;
-  requesterInitials: string;
-  requesterEmail: string;
-  isRequesterPublic: boolean;
-  message: string;
-  status: MatchStatus;
-  createdAt: string;
-  threadId?: string;
-}
-
-export interface UserProfile {
-  id: string;
-  name: string;
-  email: string;
-  bio: string;
-  isPublic: boolean;
-  joinedAt: string;
-  avatarInitials: string;
-}
 
 export const MOCK_SUBLETS: Sublet[] = [
   {
     id: '1',
     title: 'Sunny Studio Near Campus',
     address: '1234 Hinman Ave, Evanston, IL',
+    coords: [42.0399533, -87.6789093],
     neighborhood: 'Central Evanston',
     price: 1200,
     beds: 0,
@@ -87,6 +65,7 @@ export const MOCK_SUBLETS: Sublet[] = [
     id: '2',
     title: 'Modern 2BR in South Evanston',
     address: '567 Chicago Ave, Evanston, IL',
+    coords: [42.0285498, -87.6782254],
     neighborhood: 'South Evanston',
     price: 2100,
     beds: 2,
@@ -114,6 +93,7 @@ export const MOCK_SUBLETS: Sublet[] = [
     id: '3',
     title: 'Cozy 1BR Near Downtown',
     address: '890 Church St, Evanston, IL',
+    coords: [42.0483936, -87.6983340],
     neighborhood: 'Downtown Evanston',
     price: 1650,
     beds: 1,
@@ -140,6 +120,7 @@ export const MOCK_SUBLETS: Sublet[] = [
     id: '4',
     title: 'Spacious 3BR House with Yard',
     address: '245 Greenwood St, Evanston, IL',
+    coords: [42.0426483, -87.6735997],
     neighborhood: 'West Evanston',
     price: 3200,
     beds: 3,
@@ -168,6 +149,7 @@ export const MOCK_SUBLETS: Sublet[] = [
     id: '5',
     title: 'Lakeview Studio, Steps from Beach',
     address: '100 Sheridan Rd, Evanston, IL',
+    coords: [42.0605004, -87.6770944],
     neighborhood: 'Lakefront',
     price: 1450,
     beds: 0,
@@ -193,6 +175,7 @@ export const MOCK_SUBLETS: Sublet[] = [
     id: '6',
     title: 'Furnished 2BR Near Tech Campus',
     address: '320 Foster St, Evanston, IL',
+    coords: [42.0539410, -87.6836839],
     neighborhood: 'North Evanston',
     price: 1900,
     beds: 2,
@@ -219,6 +202,7 @@ export const MOCK_SUBLETS: Sublet[] = [
     id: '7',
     title: 'Bright 1BR with Parking',
     address: '789 Ridge Ave, Evanston, IL',
+    coords: [42.0519802, -87.6799612],
     neighborhood: 'Central Evanston',
     price: 1500,
     beds: 1,
@@ -245,6 +229,7 @@ export const MOCK_SUBLETS: Sublet[] = [
     id: '8',
     title: 'Newly Renovated Studio',
     address: '456 Main St, Evanston, IL',
+    coords: [42.0338423, -87.6771186],
     neighborhood: 'Downtown Evanston',
     price: 1100,
     beds: 0,
@@ -270,6 +255,7 @@ export const MOCK_SUBLETS: Sublet[] = [
     id: '9',
     title: '4BR House, Perfect for Groups',
     address: '1023 Dempster St, Evanston, IL',
+    coords: [42.0413283, -87.6861941],
     neighborhood: 'South Evanston',
     price: 4000,
     beds: 4,
@@ -301,6 +287,7 @@ export const MOCK_SUBLETS: Sublet[] = [
     id: '10',
     title: 'Quiet 1BR Near Norris Center',
     address: '654 Emerson St, Evanston, IL',
+    coords: [42.0519802, -87.6799612],
     neighborhood: 'Central Evanston',
     price: 1350,
     beds: 1,
@@ -326,6 +313,7 @@ export const MOCK_SUBLETS: Sublet[] = [
     id: '11',
     title: 'Stylish 2BR Loft',
     address: '333 Davis St, Evanston, IL',
+    coords: [42.0452045, -87.6755761],
     neighborhood: 'Downtown Evanston',
     price: 2400,
     beds: 2,
@@ -347,12 +335,13 @@ export const MOCK_SUBLETS: Sublet[] = [
     utilitiesIncluded: false,
     utilitiesCost: 175,
     ownerId: 'user-maya',
-    status: 'active',
+    status: 'archived',
   },
   {
     id: '12',
     title: 'Affordable Studio, Great Location',
     address: '777 Maple Ave, Evanston, IL',
+    coords: [42.0418248, -87.6851034],
     neighborhood: 'West Evanston',
     price: 950,
     beds: 0,
@@ -377,6 +366,7 @@ export const MOCK_SUBLETS: Sublet[] = [
     id: '13',
     title: 'Renovated 1BR, Utilities Included',
     address: '512 Noyes St, Evanston, IL',
+    coords: [42.0519802, -87.6799612],
     neighborhood: 'Central Evanston',
     price: 1750,
     beds: 1,
@@ -399,7 +389,7 @@ MOCK_SUBLETS.forEach((s) => {
   if (s.images?.length && !s.featuredImage) s.featuredImage = s.images[0];
 });
 
-export const ITEMS_PER_PAGE = 6;
+export { ITEMS_PER_PAGE } from '@/app/lib/definitions';
 
 // ─── User Profiles ────────────────────────────────────────────────────────────
 
@@ -521,23 +511,12 @@ export const MOCK_MATCH_REQUESTS: MatchRequest[] = [
 
 // ─── Favorites ────────────────────────────────────────────────────────────────
 
-export const MOCK_FAVORITE_IDS = ['1', '3', '5', '7', '2', '6'];
+export const MOCK_FAVORITE_IDS = ['5', '7', '2'];
 export const MOCK_FAVORITE_SUBLETS = MOCK_SUBLETS.filter((s) =>
   MOCK_FAVORITE_IDS.includes(s.id)
 );
 
 // ─── Notifications ────────────────────────────────────────────────────────────
-
-export type NotificationKind = 'request' | 'message' | 'accepted';
-
-export interface Notification {
-  id: string;
-  kind: NotificationKind;
-  title: string;
-  body: string;
-  timestamp: string;
-  read: boolean;
-}
 
 export const MOCK_NOTIFICATIONS: Notification[] = [
   {
@@ -568,40 +547,15 @@ export const MOCK_NOTIFICATIONS: Notification[] = [
 
 // ─── Messages ─────────────────────────────────────────────────────────────────
 
-export interface Thread {
-  id: string;
-  name: string;
-  email: string;
-  initials: string;
-  preview: string;
-  timestamp: string;
-  unread: number;
-}
-
-export interface MessageMedia {
-  type: 'image' | 'video';
-  url: string;
-  name: string;
-}
-
-export interface Message {
-  id: string;
-  threadId: string;
-  fromMe: boolean;
-  body: string;
-  timestamp: string;
-  media?: MessageMedia[];
-}
-
 export const MOCK_THREADS: Thread[] = [
-  { id: 't1', name: 'Kelly Tween',    email: 'kelly.tween@u.northwestern.edu',  initials: 'KT', preview: 'Hey, I wanted to talk about the subletting details…',         timestamp: '10 min ago',  unread: 2 },
-  { id: 't2', name: 'Alex Park',      email: 'alex.park@u.northwestern.edu',    initials: 'AP', preview: 'Is the unit still available for Fall quarter?',                 timestamp: '1 hr ago',    unread: 1 },
-  { id: 't3', name: 'Jordan Lee',     email: 'jordan.lee@u.northwestern.edu',   initials: 'JL', preview: 'Sounds good, let me know if you have any questions.',           timestamp: 'Yesterday',   unread: 0 },
-  { id: 't4', name: 'Maya Patel',     email: 'maya.patel@u.northwestern.edu',   initials: 'MP', preview: 'Can I schedule a time to see the place this week?',             timestamp: 'Yesterday',   unread: 0 },
-  { id: 't5', name: 'Chris Nguyen',   email: 'chris.nguyen@u.northwestern.edu', initials: 'CN', preview: "Thanks for the quick response! I'll follow up soon.",           timestamp: 'Mon',         unread: 0 },
-  { id: 't6', name: 'Sam Torres',     email: 'sam.torres@u.northwestern.edu',   initials: 'ST', preview: 'Do utilities come included with the rent?',                      timestamp: 'Sun',         unread: 0 },
-  { id: 't7', name: 'Priya Sharma',   email: 'priya.sharma@u.northwestern.edu', initials: 'PS', preview: "Perfect, I'll bring a co-signer as requested.",                 timestamp: 'May 28',      unread: 0 },
-  { id: 't8', name: 'Drew Mitchell',  email: 'drew.mitchell@u.northwestern.edu',initials: 'DM', preview: "Hey! Just confirming we're still on for the tour.",             timestamp: 'May 26',      unread: 0 },
+  { id: 't1', name: 'Kelly Tween',    email: 'kelly.tween@u.northwestern.edu',  initials: 'KT', preview: 'Hey, I wanted to talk about the subletting details…',         timestamp: '10 min ago',  unread: 2, userId: 'user-kelly'   },
+  { id: 't2', name: 'Alex Park',      email: 'alex.park@u.northwestern.edu',    initials: 'AP', preview: 'Is the unit still available for Fall quarter?',                 timestamp: '1 hr ago',    unread: 1, userId: 'user-alex'    },
+  { id: 't3', name: 'Jordan Lee',     email: 'jordan.lee@u.northwestern.edu',   initials: 'JL', preview: 'Sounds good, let me know if you have any questions.',           timestamp: 'Yesterday',   unread: 0, userId: 'user-jordan'  },
+  { id: 't4', name: 'Maya Patel',     email: 'maya.patel@u.northwestern.edu',   initials: 'MP', preview: 'Can I schedule a time to see the place this week?',             timestamp: 'Yesterday',   unread: 0, userId: 'user-maya'    },
+  { id: 't5', name: 'Chris Nguyen',   email: 'chris.nguyen@u.northwestern.edu', initials: 'CN', preview: "Thanks for the quick response! I'll follow up soon.",           timestamp: 'Mon',         unread: 0, userId: 'user-chris'   },
+  { id: 't6', name: 'Sam Torres',     email: 'sam.torres@u.northwestern.edu',   initials: 'ST', preview: 'Do utilities come included with the rent?',                      timestamp: 'Sun',         unread: 0, userId: 'user-sam'     },
+  { id: 't7', name: 'Priya Sharma',   email: 'priya.sharma@u.northwestern.edu', initials: 'PS', preview: "Perfect, I'll bring a co-signer as requested.",                 timestamp: 'May 28',      unread: 0, userId: 'user-priya'   },
+  { id: 't8', name: 'Drew Mitchell',  email: 'drew.mitchell@u.northwestern.edu',initials: 'DM', preview: "Hey! Just confirming we're still on for the tour.",             timestamp: 'May 26',      unread: 0, userId: 'user-drew'    },
 ];
 
 export const MOCK_MESSAGES: Message[] = [
@@ -634,7 +588,7 @@ export function getFilteredSublets({
   sortOrder?: SortOrder;
   query?: string;
 }): Sublet[] {
-  let results = [...MOCK_SUBLETS];
+  let results = MOCK_SUBLETS.filter(s => s.status !== 'archived');
 
   if (query && query.trim()) {
     const q = query.toLowerCase();

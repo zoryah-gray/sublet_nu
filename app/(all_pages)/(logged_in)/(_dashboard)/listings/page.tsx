@@ -3,6 +3,9 @@ import { PlusIcon } from '@heroicons/react/24/outline';
 import { Button } from '@/components/ui/button';
 import { MOCK_SUBLETS, MOCK_MATCH_REQUESTS, CURRENT_USER_ID } from '@/app/lib/mock-data';
 import ListingCard from '@/app/components/listings/listing-card';
+import ListingsPagination from '@/app/components/listings/listings-pagination';
+
+const LISTINGS_PER_PAGE = 3;
 
 export default async function ListingsPage({
   searchParams,
@@ -12,8 +15,12 @@ export default async function ListingsPage({
   const params = await searchParams;
   const created = params.created === '1';
   const updated = params.updated === '1';
+  const page = Math.max(1, Number(params.page ?? 1));
 
   const myListings = MOCK_SUBLETS.filter((s) => s.ownerId === CURRENT_USER_ID);
+  const start = (page - 1) * LISTINGS_PER_PAGE;
+  const pageListings = myListings.slice(start, start + LISTINGS_PER_PAGE);
+
   const requestsBySublet = Object.fromEntries(
     myListings.map((s) => [
       s.id,
@@ -30,7 +37,7 @@ export default async function ListingsPage({
       )}
 
       <div className="flex items-center justify-between">
-        <h1 className="text-xl font-bold text-gray-900">
+        <h1 className="text-2xl font-bold text-gray-900">
           My Listings{' '}
           <span className="text-gray-400 font-normal text-base">({myListings.length})</span>
         </h1>
@@ -43,7 +50,7 @@ export default async function ListingsPage({
       </div>
 
       <div className="space-y-4">
-        {myListings.map((sublet) => (
+        {pageListings.map((sublet) => (
           <ListingCard
             key={sublet.id}
             sublet={sublet}
@@ -51,6 +58,8 @@ export default async function ListingsPage({
           />
         ))}
       </div>
+
+      <ListingsPagination page={page} total={myListings.length} perPage={LISTINGS_PER_PAGE} />
     </main>
   );
 }

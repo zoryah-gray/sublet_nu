@@ -1,7 +1,13 @@
 # See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
 
+# env files (can opt-in for committing if needed)
+.env*
+.env*.local
+.env
+
 # dependencies
-/node_modules
+node_modules
+node_modules/
 /.pnp
 .pnp.*
 .yarn/*
@@ -20,23 +26,24 @@
 # production
 /build
 
+# agents
+.claude
+
 # misc
 .DS_Store
 *.pem
+*.log
+Dockerfile.explained
+TODO.md
+
+# reference images
+references_mockups
 
 # debug
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
-
-# env files (can opt-in for committing if needed)
-.env*
-.env*.local
-.env
-
-# reference images
-references_mockups
 
 # vercel
 .vercel

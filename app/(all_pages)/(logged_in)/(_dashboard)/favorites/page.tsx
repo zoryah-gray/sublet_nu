@@ -1,17 +1,21 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import SubletCard from '@/app/components/sublet/sublet-card';
 import SearchBar from '@/app/components/search-bar';
+import Pagination from '@/app/components/pagination';
 import { MOCK_FAVORITE_SUBLETS } from '@/app/lib/mock-data';
-import type { Sublet } from '@/app/lib/mock-data';
+import type { Sublet } from '@/app/lib/definitions';
 import { HeartIcon } from '@heroicons/react/24/outline';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 
+const FAVORITES_PER_PAGE = 4;
+
 export default function FavoritesPage() {
   const [favorites, setFavorites] = useState<Sublet[]>(MOCK_FAVORITE_SUBLETS);
   const [query, setQuery] = useState('');
+  const [page, setPage] = useState(1);
 
   const filtered = useMemo(() => {
     const q = query.toLowerCase();
@@ -22,6 +26,11 @@ export default function FavoritesPage() {
         s.address.toLowerCase().includes(q)
     );
   }, [favorites, query]);
+
+  // Reset to page 1 whenever the search query changes
+  useEffect(() => { setPage(1); }, [query]);
+
+  const pageItems = filtered.slice((page - 1) * FAVORITES_PER_PAGE, page * FAVORITES_PER_PAGE);
 
   const handleFavoriteChange = (id: string, isFavorited: boolean) => {
     if (!isFavorited) {
@@ -75,16 +84,25 @@ export default function FavoritesPage() {
 
       {/* Grid */}
       {filtered.length > 0 && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
-          {filtered.map((s) => (
-            <SubletCard
-              key={s.id}
-              sublet={s}
-              initialFavorited
-              onFavoriteChange={(fav: boolean) => handleFavoriteChange(s.id, fav)}
-            />
-          ))}
-        </div>
+        <>
+          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
+            {pageItems.map((s) => (
+              <SubletCard
+                key={s.id}
+                sublet={s}
+                initialFavorited
+                onFavoriteChange={(fav: boolean) => handleFavoriteChange(s.id, fav)}
+              />
+            ))}
+          </div>
+
+          <Pagination
+            page={page}
+            total={filtered.length}
+            perPage={FAVORITES_PER_PAGE}
+            onChange={setPage}
+          />
+        </>
       )}
     </main>
   );

@@ -103,7 +103,7 @@ export default function RequestMatchModal({
               </DialogDescription>
             </DialogHeader>
 
-            <div className="space-y-1.5">
+            <div className="space-y-3">
               <label className="text-xs font-medium text-gray-700">
                 Message <span className="text-gray-400 font-normal">(optional)</span>
               </label>
@@ -113,7 +113,7 @@ export default function RequestMatchModal({
                 onChange={(e) => setMessage(e.target.value)}
                 rows={4}
                 maxLength={500}
-                className="resize-none text-sm"
+                className="resize-none text-sm mt-2"
               />
               <p className="text-[11px] text-gray-400 text-right">{message.length}/500</p>
             </div>

@@ -2,7 +2,7 @@
 // Only the heart button (CardFavoriteButton) is a client island.
 import Link from 'next/link';
 import { CURRENT_USER_ID } from '@/app/lib/mock-data';
-import type { Sublet } from '@/app/lib/mock-data';
+import type { Sublet } from '@/app/lib/definitions';
 import CardFavoriteButton from '@/app/components/sublet/card-favorite-button';
 
 interface SubletMiniCardProps {

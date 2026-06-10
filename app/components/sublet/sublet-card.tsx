@@ -1,11 +1,13 @@
 // Server component — no 'use client'.
 // Only the heart button (CardFavoriteButton) is a client island.
 import Link from 'next/link';
-import { MapPinIcon } from '@heroicons/react/24/outline';
+import { MapPinIcon, HomeIcon, PencilSquareIcon } from '@heroicons/react/24/outline';
 import { CURRENT_USER_ID } from '@/app/lib/mock-data';
-import type { Sublet } from '@/app/lib/mock-data';
+import type { Sublet } from '@/app/lib/definitions';
+import { QUARTER_COLORS } from '@/app/lib/definitions';
 import CardFavoriteButton from '@/app/components/sublet/card-favorite-button';
 
+/** Hue-tinted placeholder shown when a sublet has no featured image. */
 function PlaceholderImage({ hue }: { hue: string }) {
   return (
     <div
@@ -16,30 +18,11 @@ function PlaceholderImage({ hue }: { hue: string }) {
         className="w-14 h-14 rounded-2xl flex items-center justify-center"
         style={{ backgroundColor: `hsl(${hue} 55% 75%)` }}
       >
-        <svg
-          className="w-7 h-7 text-white"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth={1.5}
-          viewBox="0 0 24 24"
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            d="M2.25 12l8.954-8.955c.44-.439 1.152-.439 1.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75"
-          />
-        </svg>
+        <HomeIcon className="w-7 h-7 text-white dark:text-neutral-600" />
       </div>
     </div>
   );
 }
-
-const QUARTER_COLORS: Record<string, string> = {
-  Fall:   'bg-amber-50 text-amber-700',
-  Winter: 'bg-sky-50 text-sky-700',
-  Spring: 'bg-green-50 text-green-700',
-  Summer: 'bg-orange-50 text-orange-700',
-};
 
 interface SubletCardProps {
   sublet: Sublet;
@@ -115,6 +98,19 @@ export default function SubletCard({
           </p>
         </div>
       </Link>
+
+      {/* Edit button is outside the card Link to avoid nested anchors */}
+      {isOwner && (
+        <div className="px-3 pb-2.5">
+          <Link
+            href={`/listings/${sublet.id}/edit`}
+            className="flex items-center justify-center gap-1 w-full text-xs text-violet-700 border border-violet-200 rounded-md py-1 hover:bg-violet-50 transition-colors"
+          >
+            <PencilSquareIcon className="w-3 h-3" />
+            Edit listing
+          </Link>
+        </div>
+      )}
     </div>
   );
 }

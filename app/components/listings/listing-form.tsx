@@ -5,24 +5,7 @@ import { useRouter } from 'next/navigation';
 import { ChevronLeftIcon, ChevronRightIcon, CheckIcon } from '@heroicons/react/24/outline';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
-import type { Quarter } from '@/app/lib/mock-data';
-
-export interface ListingFormData {
-  placeType: 'entire' | 'private';
-  roommates: number;
-  address: string;
-  neighborhood: string;
-  beds: number;
-  baths: number;
-  price: number;
-  utilitiesIncluded: boolean;
-  utilitiesCost: number;
-  quarters: Quarter[];
-  startDate: string;
-  endDate: string;
-  title: string;
-  description: string;
-}
+import type { Quarter, ListingFormData } from '@/app/lib/definitions';
 
 const EMPTY_FORM: ListingFormData = {
   placeType: 'entire',
@@ -34,7 +17,7 @@ const EMPTY_FORM: ListingFormData = {
   price: 0,
   utilitiesIncluded: false,
   utilitiesCost: 0,
-  quarters: [],
+  quartersAvailable: [],
   startDate: '',
   endDate: '',
   title: '',
@@ -59,10 +42,12 @@ const BATHS_OPTIONS = [
 
 const ALL_QUARTERS: Quarter[] = ['Fall', 'Winter', 'Spring', 'Summer'];
 
-const QUARTER_COLORS: Record<Quarter, { on: string; off: string }> = {
-  Fall:   { on: 'bg-amber-100 text-amber-800 border-amber-300', off: 'bg-white text-gray-600 border-gray-200 hover:bg-amber-50' },
-  Winter: { on: 'bg-sky-100 text-sky-800 border-sky-300',       off: 'bg-white text-gray-600 border-gray-200 hover:bg-sky-50' },
-  Spring: { on: 'bg-green-100 text-green-800 border-green-300', off: 'bg-white text-gray-600 border-gray-200 hover:bg-green-50' },
+// Toggle-state colors for the quarter selector — distinct from QUARTER_COLORS in definitions
+// which is the read-only display version used on cards.
+const QUARTER_TOGGLE_COLORS: Record<Quarter, { on: string; off: string }> = {
+  Fall:   { on: 'bg-amber-100 text-amber-800 border-amber-300',  off: 'bg-white text-gray-600 border-gray-200 hover:bg-amber-50' },
+  Winter: { on: 'bg-sky-100 text-sky-800 border-sky-300',        off: 'bg-white text-gray-600 border-gray-200 hover:bg-sky-50' },
+  Spring: { on: 'bg-green-100 text-green-800 border-green-300',  off: 'bg-white text-gray-600 border-gray-200 hover:bg-green-50' },
   Summer: { on: 'bg-orange-100 text-orange-800 border-orange-300', off: 'bg-white text-gray-600 border-gray-200 hover:bg-orange-50' },
 };
 
@@ -78,7 +63,7 @@ function validateStep1(data: ListingFormData): Record<string, string> {
 function validateStep2(data: ListingFormData): Record<string, string> {
   const errors: Record<string, string> = {};
   if (data.price <= 0) errors.price = 'Price must be greater than 0';
-  if (data.quarters.length === 0) errors.quarters = 'Select at least one quarter';
+  if (data.quartersAvailable.length === 0) errors.quartersAvailable = 'Select at least one quarter';
   if (!data.startDate) errors.startDate = 'Start date is required';
   if (!data.endDate) errors.endDate = 'End date is required';
   if (data.startDate && data.endDate && data.startDate >= data.endDate)
@@ -186,8 +171,8 @@ export default function ListingForm({ mode, subletId: _subletId, initialData }: 
 
   const toggleQuarter = (q: Quarter) => {
     set(
-      'quarters',
-      data.quarters.includes(q) ? data.quarters.filter((x) => x !== q) : [...data.quarters, q],
+      'quartersAvailable',
+      data.quartersAvailable.includes(q) ? data.quartersAvailable.filter((x) => x !== q) : [...data.quartersAvailable, q],
     );
   };
 
@@ -362,7 +347,10 @@ export default function ListingForm({ mode, subletId: _subletId, initialData }: 
                 <input
                   type="checkbox"
                   checked={data.utilitiesIncluded}
-                  onChange={(e) => set('utilitiesIncluded', e.target.checked)}
+                  onChange={(e) => {
+                    set('utilitiesIncluded', e.target.checked);
+                    if (e.target.checked) set('utilitiesCost', 0);
+                  }}
                   className="rounded border-gray-300 text-violet-600"
                 />
                 <span className="text-sm text-gray-700">Utilities included in rent</span>
@@ -376,7 +364,7 @@ export default function ListingForm({ mode, subletId: _subletId, initialData }: 
                       type="number"
                       min="0"
                       placeholder="150"
-                      value={data.utilitiesCost || ''}
+                      value={data.utilitiesCost === 0 ? '' : data.utilitiesCost}
                       onChange={(e) => set('utilitiesCost', Number(e.target.value))}
                       className={cn(inputClass, 'pl-7', errors.utilitiesCost && 'border-red-400 focus:border-red-400 focus:ring-red-100')}
                     />
@@ -388,10 +376,10 @@ export default function ListingForm({ mode, subletId: _subletId, initialData }: 
               )}
             </FieldGroup>
 
-            <FieldGroup label="Available quarters" error={errors.quarters}>
+            <FieldGroup label="Available quarters" error={errors.quartersAvailable}>
               <div className="flex gap-2 flex-wrap">
                 {ALL_QUARTERS.map((q) => {
-                  const active = data.quarters.includes(q);
+                  const active = data.quartersAvailable.includes(q);
                   return (
                     <button
                       key={q}
@@ -399,7 +387,7 @@ export default function ListingForm({ mode, subletId: _subletId, initialData }: 
                       onClick={() => toggleQuarter(q)}
                       className={cn(
                         'px-3 py-1.5 rounded-full border text-sm font-medium transition-colors',
-                        active ? QUARTER_COLORS[q].on : QUARTER_COLORS[q].off,
+                        active ? QUARTER_TOGGLE_COLORS[q].on : QUARTER_TOGGLE_COLORS[q].off,
                       )}
                     >
                       {q}
@@ -488,7 +476,7 @@ export default function ListingForm({ mode, subletId: _subletId, initialData }: 
                   label="Utilities"
                   value={data.utilitiesIncluded ? 'Included' : `~$${data.utilitiesCost}/mo est.`}
                 />
-                <ReviewRow label="Quarters" value={data.quarters.join(', ') || '—'} />
+                <ReviewRow label="Quarters" value={data.quartersAvailable.join(', ') || '—'} />
                 <ReviewRow
                   label="Available"
                   value={

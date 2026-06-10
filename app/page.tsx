@@ -119,9 +119,12 @@ export default function Home() {
             </a>
           </nav>
           <div className="flex items-center gap-3">
-            <button className="hidden sm:block text-sm text-gray-600 hover:text-violet-800 transition-colors">
+            <Link
+              href="/login"
+              className="hidden sm:block text-sm text-gray-600 hover:text-violet-800 transition-colors"
+            >
               Sign In
-            </button>
+            </Link>
             <Link
               href="/browse"
               className="text-sm font-medium bg-violet-800 text-white px-4 py-2 rounded-lg hover:bg-violet-900 transition-colors"
