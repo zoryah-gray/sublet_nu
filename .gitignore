@@ -26,8 +26,20 @@ node_modules/
 # production
 /build
 
-# agents
-.claude
+# agents — tracked exceptions: docs/ (architecture + cost review notes) and
+# plans/PLAN.md; everything else (settings.local.json, ad-hoc session notes) stays local
+.claude/*
+!.claude/docs/
+!.claude/plans/
+.claude/docs/*
+!.claude/docs/cost-guardrails.md
+!.claude/docs/security-review.md
+!.claude/docs/iac-review.md
+!.claude/docs/migrations.md
+!.claude/docs/sql.md
+!.claude/docs/cost-baseline.md
+.claude/plans/*
+!.claude/plans/PLAN.md
 
 # misc
 .DS_Store
@@ -35,6 +47,7 @@ node_modules/
 *.log
 Dockerfile.explained
 TODO.md
+/docs/adr/adr_4_revisiting_architecture.md
 
 # reference images
 references_mockups
