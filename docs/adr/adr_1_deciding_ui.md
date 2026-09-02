@@ -1,6 +1,7 @@
-# Architectural Decision Record (ADR) Template
+# Architectural Decision Record (ADR)
 
 Title: ShadcnUI vs HeadlessUI
+
 Date: 05/22/26
 
 ## Summary:
@@ -51,6 +52,7 @@ proposed | rejected | **accepted** | deprecated
 ### Consequences
 
 **Easier:**
+
 - Adding new interactive components (Calendar, Dialog, DropdownMenu, Tooltip, Form, Sheet) is a single `npx shadcn@latest add <component>` command that copies the component source directly into `app/components/ui/`.
 - Forms (login, signup, contact lister) get built-in react-hook-form + zod validation with accessible error states.
 - Notification toasts and banners have a pre-wired system (Sonner) rather than being built from scratch.
@@ -58,6 +60,7 @@ proposed | rejected | **accepted** | deprecated
 - All components are in the repo and can be freely modified to match the indigo color palette and design language already established.
 
 **More difficult / things to watch:**
+
 - **Tailwind v4 setup (one-time cost):** shadcn was designed for Tailwind v3 and uses a `tailwind.config.js` for its CSS variable tokens. With Tailwind v4, there is no `tailwind.config.js` — configuration lives in `globals.css` under `@theme`. Setup requires:
   1. Running `npx shadcn@latest init` and selecting the "manual" or CSS-variable path so it does not try to write a `tailwind.config.js`.
   2. Pasting shadcn's HSL CSS variable block (`--background`, `--primary`, `--muted`, etc.) into the `:root` block in `globals.css` instead of into a config file.
@@ -69,6 +72,7 @@ proposed | rejected | **accepted** | deprecated
 ### Confirmation
 
 When a new interactive component is needed, confirm it is sourced from shadcn (`npx shadcn@latest add`) rather than built from scratch or pulled from a third library. Components should live in `app/components/ui/`. At code review, check that:
+
 - The component uses the project's `cn()` utility (not raw `clsx` or `twMerge` separately).
 - Color tokens reference shadcn CSS variables (`--primary`, `--muted`, etc.) where applicable, keeping the palette consistent with the indigo theme set in `globals.css`.
 - Any Tailwind v3 class names flagged by the IDE linter have been corrected to their v4 equivalents before merging.
