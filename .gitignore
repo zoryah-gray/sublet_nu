@@ -47,7 +47,6 @@ node_modules/
 *.log
 Dockerfile.explained
 TODO.md
-/docs/adr/adr_4_revisiting_architecture.md
 
 # reference images
 references_mockups
