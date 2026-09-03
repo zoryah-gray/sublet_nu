@@ -38,6 +38,7 @@ node_modules/
 !.claude/docs/migrations.md
 !.claude/docs/sql.md
 !.claude/docs/cost-baseline.md
+!.claude/docs/testing.md
 .claude/plans/*
 !.claude/plans/PLAN.md
 

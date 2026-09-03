@@ -454,3 +454,7 @@ app/ui/
 - Real-time notifications (WebSocket / Supabase Realtime) — currently mock
 - Email notifications — deferred to backend
 - Mobile app — web-only for now
+- `components/ui/map.tsx` `react-hooks/exhaustive-deps` warnings (5 of them,
+  as of `fix/pre-existing-ci-failures`) — pre-existing, non-blocking, part of
+  a much bigger refactor of a largely vendored component; the 7 hard eslint
+  errors in the same file were fixed on that branch, these warnings were not
