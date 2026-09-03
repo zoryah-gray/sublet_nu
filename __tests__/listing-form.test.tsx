@@ -23,9 +23,10 @@ async function fillStep2(user: ReturnType<typeof userEvent.setup>) {
   // Select a quarter
   await user.click(screen.getByRole('button', { name: 'Fall' }));
 
+  // Select utilities
+  await user.click(screen.getByRole('checkbox', { name: /utilities included/i }))
+
   // Set dates
-  const [startInput, endInput] = screen.getAllByDisplayValue('');
-  // date inputs — use type via element
   const dateInputs = document.querySelectorAll('input[type="date"]');
   await user.type(dateInputs[0] as HTMLElement, '2025-09-01');
   await user.type(dateInputs[1] as HTMLElement, '2025-12-31');
@@ -44,7 +45,7 @@ describe('ListingForm', () => {
 
   it('step 1 shows "The Basics" heading', () => {
     render(<ListingForm mode="new" />);
-    expect(screen.getByText('The Basics')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'The Basics', level: 2 })).toBeInTheDocument();
   });
 
   it('clicking Continue on empty step 1 shows validation errors for address and neighborhood', async () => {
@@ -64,7 +65,7 @@ describe('ListingForm', () => {
     await fillStep1(user);
     await user.click(screen.getByRole('button', { name: /continue/i }));
 
-    expect(screen.getByText('Pricing, Availability & Details')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { level: 2, name: 'Pricing, Availability & Details' })).toBeInTheDocument();
   });
 
   it('step 2 validation: missing quarters shows error', async () => {
@@ -105,7 +106,7 @@ describe('ListingForm', () => {
     await user.click(screen.getByRole('button', { name: /continue/i }));
 
     // On step 3 — review
-    expect(screen.getByText('Review your listing')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { level: 2, name: 'Review your listing' })).toBeInTheDocument();
     expect(screen.getByText('1234 Hinman Ave, Evanston, IL')).toBeInTheDocument();
     expect(screen.getByText('Central Evanston')).toBeInTheDocument();
     expect(screen.getByText('My Test Listing')).toBeInTheDocument();

@@ -97,15 +97,26 @@ import {
 } from "react-leaflet"
 import type { MarkerClusterGroupProps } from "react-leaflet-markercluster"
 
+// T ranges over react-leaflet's forwardRef components, which have mutually
+// incompatible concrete prop types; only ComponentType<any> is broad enough
+// to accept all of them through this one generic wrapper (verified:
+// ComponentType<never> and ComponentType<unknown> both fail to type-check
+// against every call site below).
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 function createLazyComponent<T extends ComponentType<any>>(
-    factory: () => Promise<{ default: T }>
+    factory: () => Promise<{ default: T }>,
+    displayName: string
 ) {
     const LazyComponent = lazy(factory)
 
-    return (props: React.ComponentProps<T>) => {
+    function LazyWrapper(props: React.ComponentProps<T>) {
         const [isMounted, setIsMounted] = useState(false)
 
         useEffect(() => {
+            // One-time "has mounted on the client" gate so lazy-loaded map
+            // components render only after hydration; there's no render-time
+            // value to derive this from, an effect is the only way to know.
+            // eslint-disable-next-line react-hooks/set-state-in-effect
             setIsMounted(true)
         }, [])
 
@@ -119,72 +130,65 @@ function createLazyComponent<T extends ComponentType<any>>(
             </Suspense>
         )
     }
+    LazyWrapper.displayName = displayName
+
+    return LazyWrapper
 }
 
-const LeafletMapContainer = createLazyComponent(() =>
-    import("react-leaflet").then((mod) => ({
-        default: mod.MapContainer,
-    }))
+const LeafletMapContainer = createLazyComponent(
+    () => import("react-leaflet").then((mod) => ({ default: mod.MapContainer })),
+    "LeafletMapContainer"
 )
-const LeafletTileLayer = createLazyComponent(() =>
-    import("react-leaflet").then((mod) => ({
-        default: mod.TileLayer,
-    }))
+const LeafletTileLayer = createLazyComponent(
+    () => import("react-leaflet").then((mod) => ({ default: mod.TileLayer })),
+    "LeafletTileLayer"
 )
-const LeafletMarker = createLazyComponent(() =>
-    import("react-leaflet").then((mod) => ({
-        default: mod.Marker,
-    }))
+const LeafletMarker = createLazyComponent(
+    () => import("react-leaflet").then((mod) => ({ default: mod.Marker })),
+    "LeafletMarker"
 )
-const LeafletPopup = createLazyComponent(() =>
-    import("react-leaflet").then((mod) => ({
-        default: mod.Popup,
-    }))
+const LeafletPopup = createLazyComponent(
+    () => import("react-leaflet").then((mod) => ({ default: mod.Popup })),
+    "LeafletPopup"
 )
-const LeafletTooltip = createLazyComponent(() =>
-    import("react-leaflet").then((mod) => ({
-        default: mod.Tooltip,
-    }))
+const LeafletTooltip = createLazyComponent(
+    () => import("react-leaflet").then((mod) => ({ default: mod.Tooltip })),
+    "LeafletTooltip"
 )
-const LeafletCircle = createLazyComponent(() =>
-    import("react-leaflet").then((mod) => ({
-        default: mod.Circle,
-    }))
+const LeafletCircle = createLazyComponent(
+    () => import("react-leaflet").then((mod) => ({ default: mod.Circle })),
+    "LeafletCircle"
 )
-const LeafletCircleMarker = createLazyComponent(() =>
-    import("react-leaflet").then((mod) => ({
-        default: mod.CircleMarker,
-    }))
+const LeafletCircleMarker = createLazyComponent(
+    () => import("react-leaflet").then((mod) => ({ default: mod.CircleMarker })),
+    "LeafletCircleMarker"
 )
-const LeafletPolyline = createLazyComponent(() =>
-    import("react-leaflet").then((mod) => ({
-        default: mod.Polyline,
-    }))
+const LeafletPolyline = createLazyComponent(
+    () => import("react-leaflet").then((mod) => ({ default: mod.Polyline })),
+    "LeafletPolyline"
 )
-const LeafletPolygon = createLazyComponent(() =>
-    import("react-leaflet").then((mod) => ({
-        default: mod.Polygon,
-    }))
+const LeafletPolygon = createLazyComponent(
+    () => import("react-leaflet").then((mod) => ({ default: mod.Polygon })),
+    "LeafletPolygon"
 )
-const LeafletRectangle = createLazyComponent(() =>
-    import("react-leaflet").then((mod) => ({
-        default: mod.Rectangle,
-    }))
+const LeafletRectangle = createLazyComponent(
+    () => import("react-leaflet").then((mod) => ({ default: mod.Rectangle })),
+    "LeafletRectangle"
 )
-const LeafletLayerGroup = createLazyComponent(() =>
-    import("react-leaflet").then((mod) => ({
-        default: mod.LayerGroup,
-    }))
+const LeafletLayerGroup = createLazyComponent(
+    () => import("react-leaflet").then((mod) => ({ default: mod.LayerGroup })),
+    "LeafletLayerGroup"
 )
-const LeafletFeatureGroup = createLazyComponent(() =>
-    import("react-leaflet").then((mod) => ({
-        default: mod.FeatureGroup,
-    }))
+const LeafletFeatureGroup = createLazyComponent(
+    () => import("react-leaflet").then((mod) => ({ default: mod.FeatureGroup })),
+    "LeafletFeatureGroup"
 )
-const LeafletMarkerClusterGroup = createLazyComponent(async () =>
-    import("react-leaflet-markercluster").then((mod) => ({
-        default: mod.default,
-    }))
+const LeafletMarkerClusterGroup = createLazyComponent(
+    async () =>
+        import("react-leaflet-markercluster").then((mod) => ({
+            default: mod.default,
+        })),
+    "LeafletMarkerClusterGroup"
 )
 
 function Map({
@@ -382,6 +386,12 @@ function MapLayers({
         })
     }
 
+    const effectiveTileLayer =
+        selectedTileLayer ||
+        (defaultTileLayer && tileLayers.some((l) => l.name === defaultTileLayer)
+            ? defaultTileLayer
+            : (tileLayers[0]?.name ?? ""))
+
     useEffect(() => {
         // Error: Invalid defaultValue
         if (
@@ -392,16 +402,6 @@ function MapLayers({
             throw new Error(
                 `Invalid defaultTileLayer "${defaultTileLayer}" provided to MapLayers. It must match a MapTileLayer's name prop.`
             )
-        }
-
-        // Set initial selected tile layer
-        if (tileLayers.length > 0 && !selectedTileLayer) {
-            const validDefaultValue =
-                defaultTileLayer &&
-                tileLayers.some((layer) => layer.name === defaultTileLayer)
-                    ? defaultTileLayer
-                    : tileLayers[0].name
-            setSelectedTileLayer(validDefaultValue)
         }
 
         // Error: Invalid defaultActiveLayerGroups
@@ -416,20 +416,14 @@ function MapLayers({
                 `Invalid defaultLayerGroups value provided to MapLayers. All names must match a MapLayerGroup's name prop.`
             )
         }
-    }, [
-        tileLayers,
-        defaultTileLayer,
-        selectedTileLayer,
-        layerGroups,
-        defaultLayerGroups,
-    ])
+    }, [tileLayers, defaultTileLayer, layerGroups, defaultLayerGroups])
 
     return (
         <MapLayersContext.Provider
             value={{
                 registerTileLayer,
                 tileLayers,
-                selectedTileLayer,
+                selectedTileLayer: effectiveTileLayer,
                 setSelectedTileLayer,
                 registerLayerGroup,
                 layerGroups,
@@ -988,30 +982,32 @@ function MapDrawControl({
 }) {
     const { L, LeafletDraw } = useLeaflet()
     const map = useMap()
-    const featureGroupRef = useRef<L.FeatureGroup | null>(null)
+    const [featureGroup, setFeatureGroup] = useState<L.FeatureGroup | null>(
+        null
+    )
     const editControlRef = useRef<EditToolbar.Edit | null>(null)
     const deleteControlRef = useRef<EditToolbar.Delete | null>(null)
     const [activeMode, setActiveMode] = useState<MapDrawMode>(null)
     const [layersCount, setLayersCount] = useState(0)
 
     function updateLayersCount() {
-        if (featureGroupRef.current) {
-            setLayersCount(featureGroupRef.current.getLayers().length)
+        if (featureGroup) {
+            setLayersCount(featureGroup.getLayers().length)
         }
     }
 
     function handleDrawCreated(event: DrawEvents.Created) {
-        if (!featureGroupRef.current) return
+        if (!featureGroup) return
         const { layer } = event
-        featureGroupRef.current.addLayer(layer)
-        onLayersChange?.(featureGroupRef.current)
+        featureGroup.addLayer(layer)
+        onLayersChange?.(featureGroup)
         updateLayersCount()
         setActiveMode(null)
     }
 
     function handleDrawEditedOrDeleted() {
-        if (!featureGroupRef.current) return
-        onLayersChange?.(featureGroupRef.current)
+        if (!featureGroup) return
+        onLayersChange?.(featureGroup)
         updateLayersCount()
         setActiveMode(null)
     }
@@ -1039,14 +1035,14 @@ function MapDrawControl({
     return (
         <MapDrawContext.Provider
             value={{
-                featureGroup: featureGroupRef.current,
+                featureGroup,
                 activeMode,
                 setActiveMode,
                 editControlRef,
                 deleteControlRef,
                 layersCount,
             }}>
-            <LeafletFeatureGroup ref={featureGroupRef} />
+            <LeafletFeatureGroup ref={setFeatureGroup} />
             <MapControlContainer className={cn(position, className)}>
                 <ButtonGroup orientation="vertical" {...props} />
             </MapControlContainer>
@@ -1337,6 +1333,10 @@ function MapDrawEdit({
             touchMoveIcon: mapDrawHandleIcon,
             touchResizeIcon: mapDrawHandleIcon,
         })
+        // L.drawLocal is leaflet-draw's own documented global config object
+        // for localizing UI text, not component/hook state — this is its
+        // intended customization API, not a violation of hook immutability.
+        // eslint-disable-next-line react-hooks/immutability
         L.drawLocal.edit.handlers.edit.tooltip = {
             text: "Drag handles or markers to edit.",
             subtext: "",
@@ -1503,6 +1503,10 @@ function useDebounceLoadingState(delay = 200) {
                 clearTimeout(timeoutRef.current)
                 timeoutRef.current = null
             }
+            // Resets the debounced loading flag as part of this effect's own
+            // setTimeout lifecycle (cancelling the pending "show" when
+            // isLoading flips back off early), not a mirror of other state.
+            // eslint-disable-next-line react-hooks/set-state-in-effect
             setShowLoading(false)
         }
 

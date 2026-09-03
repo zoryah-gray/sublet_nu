@@ -85,7 +85,7 @@ Detailed rules: see `.claude/docs/cost-guardrails.md`, `.claude/docs/security-re
    the file open before the branch merges. If I cannot, we revert the change and
    re-derive it together rather than keeping it.
 
-4. **Write Test Cases**: Tests must pass before continuing. At minimum, every PR that changes behavior must test: the happy path, one validation failure, one authorization failure, and — for any state transition — the illegal transition.
+4. **Write Test Cases**: Tests must pass before continuing. At minimum, every PR that changes behavior must test: the happy path, one validation failure, one authorization failure, and — for any state transition — the illegal transition. See `.claude/docs/testing.md` for component/browser testing strategy.
 
 ## Prompt & Instruction Handling
 

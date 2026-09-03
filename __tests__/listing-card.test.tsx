@@ -19,6 +19,7 @@ const MOCK_SUBLET: Sublet = {
   id: '1',
   title: 'Sunny Studio Near Campus',
   address: '1234 Hinman Ave, Evanston, IL',
+  coords: [42.0399533, -87.6789093],
   neighborhood: 'Central Evanston',
   price: 1200,
   beds: 0,
