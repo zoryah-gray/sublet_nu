@@ -30,7 +30,8 @@ const MOCK_SUBLET: Sublet = {
   description: 'Cozy studio apartment.',
   imageHue: '230',
   ownerId: 'user-jon',
-  status: 'active',
+  displayStatus: 'public',
+  isDraft: false,
 };
 
 const MOCK_REQUESTS: MatchRequest[] = [
@@ -110,7 +111,7 @@ describe('ListingCard', () => {
 
   it('restore dialog: clicking Restore opens dialog; confirming changes badge back to Active', async () => {
     const user = userEvent.setup();
-    render(<ListingCard sublet={{ ...MOCK_SUBLET, status: 'archived' }} requests={[]} />);
+    render(<ListingCard sublet={{ ...MOCK_SUBLET, displayStatus: 'private' }} requests={[]} />);
 
     // Archived initially
     expect(screen.getByText('Archived')).toBeInTheDocument();

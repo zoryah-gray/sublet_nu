@@ -95,7 +95,7 @@ export default function ReceivedRequestsTable({ requests, fullPage }: ReceivedRe
             const isConfirmed = confirmedIds.has(r.id);
 
             return (
-              <div key={r.id} className={cn('px-5 py-3.5 transition-opacity', status === 'declined' && 'opacity-60')}>
+              <div key={r.id} className={cn('px-5 py-3.5 transition-opacity', (status === 'declined' || status === 'cancelled' || status === 'listing_removed') && 'opacity-60')}>
                 <div className="flex items-start gap-3">
                   {/* Avatar */}
                   <div className="size-8 rounded-full bg-violet-100 flex items-center justify-center shrink-0 mt-0.5">

@@ -5,7 +5,8 @@ import Link from 'next/link';
 import { ChevronDownIcon, PencilSquareIcon, MapPinIcon, HomeIcon } from '@heroicons/react/24/outline';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
-import type { Sublet, MatchRequest, SubletStatus } from '@/app/lib/definitions';
+import { deriveSubletStatus } from '@/app/lib/utils';
+import type { Sublet, MatchRequest, SubletDisplayStatus } from '@/app/lib/definitions';
 import {
   QUARTER_COLORS,
   SUBLET_STATUS_STYLES,
@@ -22,13 +23,13 @@ interface ListingCardProps {
 
 /** Expandable listing management card shown on the owner's My Listings page. */
 export default function ListingCard({ sublet, requests }: ListingCardProps) {
-  const [status, setStatus] = useState<SubletStatus>(sublet.status);
+  const [displayStatus, setDisplayStatus] = useState<SubletDisplayStatus>(sublet.displayStatus);
   const [deleted, setDeleted] = useState(false);
   const [inboxOpen, setInboxOpen] = useState(false);
 
   if (deleted) return null;
 
-  const isRented = requests.some((r) => r.status === 'confirmed');
+  const status = deriveSubletStatus({ displayStatus, isDraft: sublet.isDraft });
   const inboxId = `inbox-${sublet.id}`;
 
   return (
@@ -58,11 +59,7 @@ export default function ListingCard({ sublet, requests }: ListingCardProps) {
           {/* Title + status badge */}
           <div className="flex items-center gap-2 flex-wrap">
             <p className="text-sm font-semibold text-gray-900 truncate">{sublet.title}</p>
-            {isRented ? (
-              <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full shrink-0 bg-violet-50 text-violet-700">
-                Rented
-              </span>
-            ) : (
+            {status && (
               <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full shrink-0 ${SUBLET_STATUS_STYLES[status]}`}>
                 {SUBLET_STATUS_LABELS[status]}
               </span>
@@ -116,8 +113,8 @@ export default function ListingCard({ sublet, requests }: ListingCardProps) {
               <ArchiveButton
                 subletTitle={sublet.title}
                 isArchived={status === 'archived'}
-                onArchive={() => setStatus('archived')}
-                onUnarchive={() => setStatus('active')}
+                onArchive={() => setDisplayStatus('private')}
+                onUnarchive={() => setDisplayStatus('public')}
               />
               <DeleteConfirmDialog
                 subletTitle={sublet.title}

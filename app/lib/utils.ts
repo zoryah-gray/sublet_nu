@@ -1,5 +1,7 @@
-// Utillity functions 
+// Utillity functions
 //
+
+import type { Sublet, SubletStatus } from './definitions';
 
 // ─── Date formatting ──────────────────────────────────────────────────────────
 
@@ -76,6 +78,24 @@ export function validateMediaFiles(files: FileList): { valid: File[]; errors: Fi
   });
 
   return { valid, errors };
+}
+
+// ─── Sublet status ────────────────────────────────────────────────────────────
+
+/**
+ * Computes the display label for a sublet from its stored visibility fields.
+ * Returns null for 'deleted' — callers rendering a list should skip it rather
+ * than render a fake status.
+ */
+export function deriveSubletStatus(
+  sublet: Pick<Sublet, 'displayStatus' | 'isDraft'>,
+): SubletStatus | null {
+  switch (sublet.displayStatus) {
+    case 'restricted': return 'rented';
+    case 'public':     return 'active';
+    case 'private':    return sublet.isDraft ? 'draft' : 'archived';
+    case 'deleted':    return null;
+  }
 }
 
 // ─── Path Functions ───────────────────────────────────────────────────────────

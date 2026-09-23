@@ -10,9 +10,20 @@ import { LatLngExpression } from "leaflet";
 
 export type Quarter     = 'Fall' | 'Winter' | 'Spring' | 'Summer';
 export type SortOrder   = 'asc' | 'desc' | 'new';
-export type SubletStatus = 'active' | 'archived' | 'draft';
-export type MatchStatus = 'pending' | 'accepted' | 'declined' | 'confirmed';
-export type NotificationKind = 'request' | 'message' | 'accepted';
+/** Display label derived from a sublet's stored `displayStatus`/`isDraft` — see `deriveSubletStatus` in utils.ts. Not stored directly. */
+export type SubletStatus = 'active' | 'archived' | 'draft' | 'rented';
+export type MatchStatus = 'pending' | 'accepted' | 'declined' | 'confirmed' | 'cancelled' | 'listing_removed';
+export type NotificationKind =
+  | 'match_request_received'
+  | 'match_request_accepted'
+  | 'match_request_declined'
+  | 'match_request_cancelled'
+  | 'match_request_confirmed'
+  | 'match_request_listing_removed'
+  | 'new_message'
+  | 'favorited_sublet_updated';
+/** Stored sublet visibility. `SubletStatus` above is what the UI derives from it. */
+export type SubletDisplayStatus = 'public' | 'restricted' | 'private' | 'deleted';
 
 // ─── Sublet ───────────────────────────────────────────────────────────────────
 
@@ -40,7 +51,12 @@ export interface Sublet {
   /** Estimated monthly utilities cost when not included in rent. */
   utilitiesCost?: number;
   ownerId: string;
-  status: SubletStatus;
+
+  displayStatus: SubletDisplayStatus;
+  /** true = never gone public yet (a true draft). Flips to false, once, the first time displayStatus becomes 'public' — never flips back. */
+  isDraft: boolean;
+  /** Set when a match_request against this sublet reaches 'confirmed'. The one user, besides the owner, who can still see a 'restricted' sublet. */
+  confirmedRenterId?: string;
 }
 
 export const ITEMS_PER_PAGE = 6;
@@ -57,18 +73,22 @@ export const QUARTER_COLORS: Record<Quarter, string> = {
 
 /** Pill badge background + text classes for MatchRequest status. */
 export const MATCH_STATUS_STYLES: Record<MatchStatus, string> = {
-  pending:   'bg-amber-50 text-amber-700',
-  accepted:  'bg-green-50 text-green-700',
-  declined:  'bg-red-50 text-red-700',
-  confirmed: 'bg-violet-50 text-violet-700',
+  pending:         'bg-amber-50 text-amber-700',
+  accepted:        'bg-green-50 text-green-700',
+  declined:        'bg-red-50 text-red-700',
+  confirmed:       'bg-violet-50 text-violet-700',
+  cancelled:       'bg-gray-100 text-gray-400',
+  listing_removed: 'bg-gray-100 text-gray-500',
 };
 
 /** Human-readable display labels for MatchRequest status. */
 export const MATCH_STATUS_LABELS: Record<MatchStatus, string> = {
-  pending:   'Pending',
-  accepted:  'Accepted',
-  declined:  'Declined',
-  confirmed: 'Confirmed',
+  pending:         'Pending',
+  accepted:        'Accepted',
+  declined:        'Declined',
+  confirmed:       'Confirmed',
+  cancelled:       'Withdrawn',
+  listing_removed: 'Listing Removed',
 };
 
 /** Pill badge background + text classes for Sublet status. */
@@ -76,6 +96,7 @@ export const SUBLET_STATUS_STYLES: Record<SubletStatus, string> = {
   active:   'bg-green-50 text-green-700',
   archived: 'bg-gray-100 text-gray-500',
   draft:    'bg-amber-50 text-amber-700',
+  rented:   'bg-violet-50 text-violet-700',
 };
 
 /** Human-readable display labels for Sublet status. */
@@ -83,6 +104,7 @@ export const SUBLET_STATUS_LABELS: Record<SubletStatus, string> = {
   active:   'Active',
   archived: 'Archived',
   draft:    'Draft',
+  rented:   'Rented',
 };
 
 // ─── Match request ────────────────────────────────────────────────────────────
