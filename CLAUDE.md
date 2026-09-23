@@ -97,6 +97,7 @@ Use progressive disclosure, instead of including all instructions, create a brie
 
 - Quarters not Seasons
 - Use ' not &apos;
+- setState placement — see `.claude/docs/react-state.md`
 
 ## IMPORTANT! MUST DOs
 

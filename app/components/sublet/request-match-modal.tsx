@@ -46,18 +46,34 @@ export default function RequestMatchModal({
   };
 
   if (existingRequest) {
-    const statusLabel =
-      existingRequest.status === 'pending'  ? 'Request sent — waiting for owner response' :
-      existingRequest.status === 'accepted' ? 'Match accepted! Check your messages.' :
-      existingRequest.status === 'declined' ? 'Request declined' :
-      existingRequest.status === 'confirmed' ? 'Sublet confirmed' : '';
-
-    const statusColor =
-      existingRequest.status === 'accepted' || existingRequest.status === 'confirmed'
-        ? 'bg-green-50 border-green-200 text-green-800'
-        : existingRequest.status === 'declined'
-        ? 'bg-red-50 border-red-200 text-red-700'
-        : 'bg-violet-50 border-violet-200 text-violet-800';
+    let statusLabel: string;
+    let statusColor: string;
+    switch (existingRequest.status) {
+      case 'pending':
+        statusLabel = 'Request sent — waiting for owner response';
+        statusColor = 'bg-violet-50 border-violet-200 text-violet-800';
+        break;
+      case 'accepted':
+        statusLabel = 'Match accepted! Check your messages.';
+        statusColor = 'bg-green-50 border-green-200 text-green-800';
+        break;
+      case 'confirmed':
+        statusLabel = 'Sublet confirmed';
+        statusColor = 'bg-green-50 border-green-200 text-green-800';
+        break;
+      case 'declined':
+        statusLabel = 'Request declined';
+        statusColor = 'bg-red-50 border-red-200 text-red-700';
+        break;
+      case 'cancelled':
+        statusLabel = 'Request withdrawn';
+        statusColor = 'bg-gray-50 border-gray-200 text-gray-600';
+        break;
+      case 'listing_removed':
+        statusLabel = 'This listing was removed';
+        statusColor = 'bg-gray-50 border-gray-200 text-gray-600';
+        break;
+    }
 
     return (
       <div className={`rounded-2xl border px-5 py-4 flex items-center gap-3 ${statusColor}`}>

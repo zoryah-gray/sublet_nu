@@ -48,6 +48,7 @@ node_modules/
 *.log
 Dockerfile.explained
 TODO.md
+EXPLAIN_BACK.md
 
 # reference images
 references_mockups

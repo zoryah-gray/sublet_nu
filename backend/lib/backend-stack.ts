@@ -52,6 +52,8 @@ export class BackendStack extends cdk.Stack {
       subscribers: [snsSubscriber()],
     });
 
+    const projectCostFilter = { TagKeyValue: ['user:Project$SubletNU'] };
+
     // $10/month actual spend, warns at 80% and alerts at 100%.
     new budgets.CfnBudget(this, 'ActualBudget10', {
       budget: {
@@ -59,6 +61,7 @@ export class BackendStack extends cdk.Stack {
         budgetType: 'COST',
         timeUnit: 'MONTHLY',
         budgetLimit: { amount: 10, unit: 'USD' },
+        costFilters: projectCostFilter
       },
       notificationsWithSubscribers: [notification('ACTUAL', 80), notification('ACTUAL', 100)],
     });
@@ -70,6 +73,7 @@ export class BackendStack extends cdk.Stack {
         budgetType: 'COST',
         timeUnit: 'MONTHLY',
         budgetLimit: { amount: 25, unit: 'USD' },
+        costFilters: projectCostFilter,
       },
       notificationsWithSubscribers: [notification('ACTUAL', 100)],
     });
@@ -81,6 +85,7 @@ export class BackendStack extends cdk.Stack {
         budgetType: 'COST',
         timeUnit: 'MONTHLY',
         budgetLimit: { amount: 50, unit: 'USD' },
+        costFilters: projectCostFilter,
       },
       notificationsWithSubscribers: [notification('ACTUAL', 100)],
     });
@@ -92,6 +97,7 @@ export class BackendStack extends cdk.Stack {
         budgetType: 'COST',
         timeUnit: 'MONTHLY',
         budgetLimit: { amount: 30, unit: 'USD' },
+        costFilters: projectCostFilter,
       },
       notificationsWithSubscribers: [notification('FORECASTED', 100)],
     });

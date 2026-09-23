@@ -16,9 +16,14 @@ import { usePathname } from 'next/navigation';
 import clsx from 'clsx';
 
 const KIND_BADGE: Record<Notification['kind'], { label: string; className: string }> = {
-  request:  { label: 'Request',  className: 'bg-amber-100 text-amber-700' },
-  message:  { label: 'Message',  className: 'bg-violet-100 text-violet-700' },
-  accepted: { label: 'Accepted', className: 'bg-green-100 text-green-700' },
+  match_request_received: { label: 'Request', className: 'bg-amber-100 text-amber-700' },
+  match_request_accepted: { label: 'Accepted', className: 'bg-green-100 text-green-700' },
+  match_request_declined: { label: 'Declined', className: 'bg-red-100 text-red-700' },
+  match_request_confirmed: { label: 'Confirmed', className: 'bg-violet-100 text-violet-700' },
+  match_request_cancelled: { label: 'Withdrawn', className: 'bg-gray-100 text-gray-500' },
+  match_request_listing_removed: { label: 'Listing Removed', className: 'bg-gray-100 text-gray-500' },
+  new_message: { label: 'Message', className: 'bg-violet-100 text-violet-700' },
+  favorited_sublet_updated: { label: 'Favorite Updated', className: 'bg-sky-100 text-sky-700' },
 };
 
 export default function NavBar() {
