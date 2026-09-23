@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import Image from 'next/image';
 import { CalendarDaysIcon, PencilSquareIcon, GlobeAltIcon, HomeIcon } from '@heroicons/react/24/outline';
 import { Button } from '@/components/ui/button';
 import {
@@ -138,7 +139,7 @@ function MyListingsCard() {
               return (
                 <div key={s.id} className="flex gap-3 items-start">
                   {s.featuredImage ? (
-                    <img
+                    <Image
                       src={s.featuredImage}
                       alt={s.title}
                       className="w-16 h-16 sm:w-20 sm:h-20 rounded-xl shrink-0 object-cover"
