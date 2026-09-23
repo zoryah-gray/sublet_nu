@@ -174,8 +174,18 @@ function FilterSidebar({
   const [localMax, setLocalMax] = useState(filters.maxPrice);
 
   // Sync local state when URL-driven filters change (reset, back/forward navigation).
-  useEffect(() => { setLocalMin(filters.minPrice); }, [filters.minPrice]);
-  useEffect(() => { setLocalMax(filters.maxPrice); }, [filters.maxPrice]);
+  // Adjusted during render rather than in an Effect, per React's "Adjusting some
+  // state when a prop changes" pattern: https://react.dev/learn/you-might-not-need-an-effect
+  const [prevMinPrice, setPrevMinPrice] = useState(filters.minPrice);
+  const [prevMaxPrice, setPrevMaxPrice] = useState(filters.maxPrice);
+  if (filters.minPrice !== prevMinPrice) {
+    setPrevMinPrice(filters.minPrice);
+    setLocalMin(filters.minPrice);
+  }
+  if (filters.maxPrice !== prevMaxPrice) {
+    setPrevMaxPrice(filters.maxPrice);
+    setLocalMax(filters.maxPrice);
+  }
 
   const commitPrice = (lo: number, hi: number) =>
     onUrlChange({

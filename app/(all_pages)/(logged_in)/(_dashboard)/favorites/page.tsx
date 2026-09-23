@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo } from 'react';
 import SubletCard from '@/app/components/sublet/sublet-card';
 import SearchBar from '@/app/components/search-bar';
 import Pagination from '@/app/components/pagination';
@@ -28,7 +28,10 @@ export default function FavoritesPage() {
   }, [favorites, query]);
 
   // Reset to page 1 whenever the search query changes
-  useEffect(() => { setPage(1); }, [query]);
+  const handleQueryChange = (value: string) => {
+    setQuery(value);
+    setPage(1);
+  };
 
   const pageItems = filtered.slice((page - 1) * FAVORITES_PER_PAGE, page * FAVORITES_PER_PAGE);
 
@@ -54,7 +57,7 @@ export default function FavoritesPage() {
       {favorites.length > 0 && (
         <SearchBar
           value={query}
-          onChange={setQuery}
+          onChange={handleQueryChange}
           placeholder="Search saved listings…"
           className="mb-5 max-w-md"
         />
@@ -76,7 +79,13 @@ export default function FavoritesPage() {
       {favorites.length > 0 && filtered.length === 0 && (
         <div className="flex flex-col items-center justify-center py-16 gap-2 text-gray-400">
           <p className="text-sm">No saved listings match &ldquo;{query}&rdquo;.</p>
-          <button onClick={() => setQuery('')} className="text-xs text-violet-600 hover:underline">
+          <button
+            onClick={() => {
+              setQuery('');
+              setPage(1);
+            }}
+            className="text-xs text-violet-600 hover:underline"
+          >
             Clear search
           </button>
         </div>
