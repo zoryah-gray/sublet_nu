@@ -207,47 +207,17 @@ app/components/
 
 ## 3. Data Types Needed (mock → eventually PostgreSQL)
 
-```ts
-// Match request from a renter to an owner
-type MatchStatus = "pending" | "accepted" | "declined" | "confirmed";
-interface MatchRequest {
-  id: string;
-  subletId: string;
-  subletTitle: string;
-  ownerId: string; // the sublet owner
-  requesterId: string;
-  requesterName: string;
-  requesterInitials: string;
-  requesterEmail: string;
-  isRequesterPublic: boolean;
-  message: string; // sent with the request
-  status: MatchStatus;
-  createdAt: string;
-  threadId?: string; // set when owner accepts → opens conversation
-}
+Live source of truth: `app/lib/definitions.ts` (this section used to inline a
+copy of the types; that copy drifted out of date and has been removed in
+favor of pointing here — read the file directly rather than trusting a
+second copy to stay in sync).
 
-// Sublet status (extend existing Sublet type)
-type SubletStatus = "active" | "archived" | "draft";
-// Add to Sublet: status: SubletStatus, ownerId: string
-
-// User profile (for public profile pages)
-interface UserProfile {
-  id: string;
-  name: string;
-  email: string;
-  bio: string;
-  isPublic: boolean;
-  joinedAt: string;
-  avatarInitials: string;
-}
-```
-
-Add to `app/lib/mock-data.ts`:
-
-- `MOCK_MATCH_REQUESTS: MatchRequest[]` — mix of pending/accepted/declined
-- `CURRENT_USER_ID = 'user-jon'` — simulates the logged-in user
-- `MOCK_USER_PROFILES: UserProfile[]`
-- Add `status` and `ownerId` fields to `Sublet`
+As of Day 2 (`backend/db/schema.sql`, `backend/db/erd.md`): `MatchStatus`
+includes `cancelled`/`listing_removed`; `Sublet.status` was replaced by
+`displayStatus`/`isDraft`/`confirmedRenterId` (stored) plus a
+`deriveSubletStatus()` helper in `app/lib/utils.ts` that computes the old
+`SubletStatus` label (now widened to include `rented`) — see
+`backend/db/schema.sql`'s header comments for the full schema rationale.
 
 ---
 
@@ -458,3 +428,21 @@ app/ui/
   as of `fix/pre-existing-ci-failures`) — pre-existing, non-blocking, part of
   a much bigger refactor of a largely vendored component; the 7 hard eslint
   errors in the same file were fixed on that branch, these warnings were not
+
+## 7. Known Structural Inconsistencies
+
+- ~~`listing-card.tsx:25` read `sublet.status` directly~~ — fixed on
+  `schema-setup`: that field is gone now that the schema landed, replaced by
+  a `deriveSubletStatus()` call (see `app/lib/utils.ts`).
+- `app/components/dashboard/sent-requests-table.tsx`'s "Withdraw" button
+  (and the identical dead-code pattern in
+  `app/components/requests/cards-layout.tsx`) models withdrawal as local
+  component state (a `Set<string>` of "withdrawn" ids) rather than a real
+  status transition — its own TODO comment says the intended implementation
+  "deletes the MatchRequest row in the DB." The finalized schema
+  (`backend/db/schema.sql`) models withdrawal as a transition to a real
+  `cancelled` status instead: deleting the row would destroy the
+  `last_transitioned_at` history the 7-day re-request cooldown depends on.
+  **Not fixed on `schema-setup`** — converting it requires real
+  state-mutation logic against what's still static mock data, which is Day
+  3+ (repository layer) work, not a type-contract change.

@@ -35,9 +35,9 @@ two effects, with a comment citing react.dev.
 **Why #1 and #2 differ despite tripping the same lint rule:** the rule fires
 whenever `setState` is called synchronously inside a `useEffect` body, but that's a
 syntactic pattern, not a single root cause. #1's state change originates from
-*inside* the component's own event handlers, so the effect was purely redundant
+_inside_ the component's own event handlers, so the effect was purely redundant
 indirection — delete it, do the work where it already happens. #2's state change
-originates from *outside* the component (URL/prop change with no owned handler),
+originates from _outside_ the component (URL/prop change with no owned handler),
 so some synchronization is genuinely necessary — the fix is to do that
 synchronization during render (where React expects it) instead of after commit (in
 an effect, which is one render behind and causes the cascading extra render the

@@ -37,7 +37,7 @@ export default async function PublicProfilePage({
   }
 
   const listings = MOCK_SUBLETS.filter(
-    (s) => s.ownerId === userId && s.status === 'active',
+    (s) => s.ownerId === userId && s.displayStatus === 'public',
   );
 
   return (

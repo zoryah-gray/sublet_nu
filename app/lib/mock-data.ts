@@ -5,6 +5,7 @@ export type {
   Quarter,
   SortOrder,
   SubletStatus,
+  SubletDisplayStatus,
   MatchStatus,
   NotificationKind,
   Sublet,
@@ -20,8 +21,6 @@ export type {
 import type {
   Quarter,
   SortOrder,
-  SubletStatus,
-  MatchStatus,
   Sublet,
   MatchRequest,
   UserProfile,
@@ -59,7 +58,8 @@ export const MOCK_SUBLETS: Sublet[] = [
     utilitiesIncluded: false,
     utilitiesCost: 100,
     ownerId: 'user-jon',
-    status: 'active',
+    displayStatus: 'public',
+    isDraft: false,
   },
   {
     id: '2',
@@ -87,7 +87,8 @@ export const MOCK_SUBLETS: Sublet[] = [
     utilitiesIncluded: false,
     utilitiesCost: 160,
     ownerId: 'user-kelly',
-    status: 'active',
+    displayStatus: 'public',
+    isDraft: false,
   },
   {
     id: '3',
@@ -114,7 +115,8 @@ export const MOCK_SUBLETS: Sublet[] = [
     utilitiesIncluded: false,
     utilitiesCost: 120,
     ownerId: 'user-jon',
-    status: 'active',
+    displayStatus: 'public',
+    isDraft: false,
   },
   {
     id: '4',
@@ -143,7 +145,8 @@ export const MOCK_SUBLETS: Sublet[] = [
     utilitiesIncluded: false,
     utilitiesCost: 250,
     ownerId: 'user-kelly',
-    status: 'active',
+    displayStatus: 'public',
+    isDraft: false,
   },
   {
     id: '5',
@@ -169,7 +172,8 @@ export const MOCK_SUBLETS: Sublet[] = [
     utilitiesIncluded: false,
     utilitiesCost: 90,
     ownerId: 'user-alex',
-    status: 'active',
+    displayStatus: 'public',
+    isDraft: false,
   },
   {
     id: '6',
@@ -196,7 +200,8 @@ export const MOCK_SUBLETS: Sublet[] = [
     placeType: 'entire',
     utilitiesIncluded: true,
     ownerId: 'user-jon',
-    status: 'active',
+    displayStatus: 'public',
+    isDraft: false,
   },
   {
     id: '7',
@@ -223,7 +228,8 @@ export const MOCK_SUBLETS: Sublet[] = [
     utilitiesIncluded: false,
     utilitiesCost: 110,
     ownerId: 'user-alex',
-    status: 'active',
+    displayStatus: 'public',
+    isDraft: false,
   },
   {
     id: '8',
@@ -249,7 +255,8 @@ export const MOCK_SUBLETS: Sublet[] = [
     utilitiesIncluded: false,
     utilitiesCost: 80,
     ownerId: 'user-jordan',
-    status: 'active',
+    displayStatus: 'public',
+    isDraft: false,
   },
   {
     id: '9',
@@ -281,7 +288,8 @@ export const MOCK_SUBLETS: Sublet[] = [
     utilitiesIncluded: false,
     utilitiesCost: 350,
     ownerId: 'user-jordan',
-    status: 'active',
+    displayStatus: 'public',
+    isDraft: false,
   },
   {
     id: '10',
@@ -307,7 +315,8 @@ export const MOCK_SUBLETS: Sublet[] = [
     utilitiesIncluded: false,
     utilitiesCost: 100,
     ownerId: 'user-maya',
-    status: 'active',
+    displayStatus: 'public',
+    isDraft: false,
   },
   {
     id: '11',
@@ -335,7 +344,8 @@ export const MOCK_SUBLETS: Sublet[] = [
     utilitiesIncluded: false,
     utilitiesCost: 175,
     ownerId: 'user-maya',
-    status: 'archived',
+    displayStatus: 'private',
+    isDraft: false,
   },
   {
     id: '12',
@@ -360,7 +370,8 @@ export const MOCK_SUBLETS: Sublet[] = [
     placeType: 'entire',
     utilitiesIncluded: true,
     ownerId: 'user-maya',
-    status: 'active',
+    displayStatus: 'public',
+    isDraft: false,
   },
   {
     id: '13',
@@ -380,7 +391,9 @@ export const MOCK_SUBLETS: Sublet[] = [
     placeType: 'entire',
     utilitiesIncluded: true,
     ownerId: 'user-jon',
-    status: 'active',
+    displayStatus: 'restricted',
+    isDraft: false,
+    confirmedRenterId: 'user-kelly',
   },
 ];
 
@@ -521,7 +534,7 @@ export const MOCK_FAVORITE_SUBLETS = MOCK_SUBLETS.filter((s) =>
 export const MOCK_NOTIFICATIONS: Notification[] = [
   {
     id: 'n1',
-    kind: 'request',
+    kind: 'match_request_received',
     title: 'New subletting request',
     body: 'Kelly Tween sent a request for your Sunny Studio Near Campus listing.',
     timestamp: '2026-05-31T10:30:00',
@@ -529,7 +542,7 @@ export const MOCK_NOTIFICATIONS: Notification[] = [
   },
   {
     id: 'n2',
-    kind: 'accepted',
+    kind: 'match_request_accepted',
     title: 'Request accepted',
     body: 'Your request for Modern 2BR in South Evanston was accepted. Reach out to confirm details.',
     timestamp: '2026-05-31T08:15:00',
@@ -537,7 +550,7 @@ export const MOCK_NOTIFICATIONS: Notification[] = [
   },
   {
     id: 'n3',
-    kind: 'message',
+    kind: 'new_message',
     title: 'New message from Alex Park',
     body: 'Hey, I wanted to ask about the availability for the Fall quarter...',
     timestamp: '2026-05-30T21:45:00',
@@ -588,7 +601,7 @@ export function getFilteredSublets({
   sortOrder?: SortOrder;
   query?: string;
 }): Sublet[] {
-  let results = MOCK_SUBLETS.filter(s => s.status !== 'archived');
+  let results = MOCK_SUBLETS.filter(s => s.displayStatus === 'public');
 
   if (query && query.trim()) {
     const q = query.toLowerCase();
