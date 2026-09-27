@@ -17,14 +17,17 @@ node_modules/
 !.yarn/versions
 
 # testing
-/coverage
+apps/frontend/coverage
 
 # next.js
-/.next/
-/out/
+apps/frontend/.next/
+apps/frontend/out
 
 # production
-/build
+apps/frontend/build
+
+# shared package build output
+packages/shared/dist/
 
 # agents — tracked exceptions: docs/ (architecture + cost review notes) and
 # plans/PLAN.md; everything else (settings.local.json, ad-hoc session notes) stays local

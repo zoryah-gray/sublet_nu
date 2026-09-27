@@ -1,14 +1,18 @@
 // ─── Domain types ─────────────────────────────────────────────────────────────
 //
-// Single source of truth for every data shape used across the app.
-// When a real database is connected, these types should map 1-to-1
-// with the DB schema. Mock data in mock-data.ts must satisfy these shapes.
+// Single import source for every data shape used across the app.
+// `Sublet`, `Quarter`, and `SubletDisplayStatus` are canonically defined in
+// packages/shared (consumed by apps/backend too — see .claude/docs/sql.md)
+// and re-exported here so existing imports from '@/app/lib/definitions' keep
+// working unchanged. Mock data in mock-data.ts must satisfy these shapes.
 
 import { LatLngExpression } from "leaflet";
+import type { Quarter, SubletDisplayStatus, Sublet } from "@sublet-nu/shared";
+
+export type { Quarter, SubletDisplayStatus, Sublet };
 
 // ─── Enums / unions ───────────────────────────────────────────────────────────
 
-export type Quarter     = 'Fall' | 'Winter' | 'Spring' | 'Summer';
 export type SortOrder   = 'asc' | 'desc' | 'new';
 /** Display label derived from a sublet's stored `displayStatus`/`isDraft` — see `deriveSubletStatus` in utils.ts. Not stored directly. */
 export type SubletStatus = 'active' | 'archived' | 'draft' | 'rented';
@@ -22,42 +26,6 @@ export type NotificationKind =
   | 'match_request_listing_removed'
   | 'new_message'
   | 'favorited_sublet_updated';
-/** Stored sublet visibility. `SubletStatus` above is what the UI derives from it. */
-export type SubletDisplayStatus = 'public' | 'restricted' | 'private' | 'deleted';
-
-// ─── Sublet ───────────────────────────────────────────────────────────────────
-
-export interface Sublet {
-  id: string;
-  title: string;
-  address: string;
-  coords: LatLngExpression;
-  neighborhood: string;
-  price: number;
-  beds: number;
-  baths: number;
-  quarters: Quarter[];
-  startDate: string;
-  endDate: string;
-  description: string;
-  imageHue: string;
-  images?: string[];
-  /** Set to images[0] at runtime if not explicitly provided. */
-  featuredImage?: string;
-  videos?: string[];
-  placeType?: 'entire' | 'private';
-  roommates?: number;
-  utilitiesIncluded?: boolean;
-  /** Estimated monthly utilities cost when not included in rent. */
-  utilitiesCost?: number;
-  ownerId: string;
-
-  displayStatus: SubletDisplayStatus;
-  /** true = never gone public yet (a true draft). Flips to false, once, the first time displayStatus becomes 'public' — never flips back. */
-  isDraft: boolean;
-  /** Set when a match_request against this sublet reaches 'confirmed'. The one user, besides the owner, who can still see a 'restricted' sublet. */
-  confirmedRenterId?: string;
-}
 
 export const ITEMS_PER_PAGE = 6;
 

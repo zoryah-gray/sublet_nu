@@ -9,3 +9,10 @@ node_modules
 __tests__
 references_mockups
 Dockerfile.explained
+
+# This image only builds apps/frontend. Exclude AWS CDK infra source (and any
+# cdk.out/cdk.context.json cache) from the build context entirely — the only
+# thing the deps stage needs from apps/backend is its package.json, for
+# `npm ci` to validate the workspace lockfile against every member.
+apps/backend/**
+!apps/backend/package.json
