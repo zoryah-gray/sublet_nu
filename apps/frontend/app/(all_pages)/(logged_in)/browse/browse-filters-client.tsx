@@ -388,7 +388,7 @@ export default function BrowseFiltersClient({
   const [isPending, startTransition] = useTransition();
   const mainRef  = useRef<HTMLElement>(null);
 
-  const isDesktop = useSSRSafeMediaQuery({ minWidth: 1024 });
+  const isDesktop = useSSRSafeMediaQuery('(min-width: 1024px)');
 
   // UI-only state (not serialised to URL)
   const [showFilters, setShowFilters] = useState(false);

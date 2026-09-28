@@ -13,7 +13,7 @@ export default function MapUI({
     sublets: Sublet[];
     onMarkerClick: (sublet: Sublet) => void;
 }) {
-    const isMobile = useSSRSafeMediaQuery({ maxWidth: 767 });
+    const isMobile = useSSRSafeMediaQuery('(max-width: 767px)');
     const zoomCtrl = isMobile ? 11 : 13;
 
     return (
