@@ -1,6 +1,7 @@
 // Utillity functions
 //
 
+import { useSyncExternalStore } from 'react';
 import type { Sublet, SubletStatus } from './definitions';
 
 // ─── Date formatting ──────────────────────────────────────────────────────────
@@ -104,4 +105,26 @@ export function deriveSubletStatus(
 export function isActive(href: string, pathname: string): boolean {
   if (href === '/' || href === '/dashboard') return pathname === href;
   return pathname === href || pathname.startsWith(href + '/');
+}
+
+// ─── SSR-safe media query ───────────────────────────────────────────────────────
+
+/**
+ * SSR-safe media query hook. Takes a raw CSS media query string, e.g.
+ * '(min-width: 1024px)'. Uses useSyncExternalStore rather than a
+ * useState+useEffect mounted-gate: React calls getServerSnapshot during SSR
+ * and hydration's first pass, and getSnapshot afterward, so server and
+ * client agree on the first paint without a manual setState call inside an
+ * Effect (react-hooks/set-state-in-effect — see .claude/docs/react-state.md).
+ */
+export function useSSRSafeMediaQuery(query: string): boolean {
+  return useSyncExternalStore(
+    (onChange) => {
+      const mql = window.matchMedia(query);
+      mql.addEventListener('change', onChange);
+      return () => mql.removeEventListener('change', onChange);
+    },
+    () => window.matchMedia(query).matches,
+    () => false,
+  );
 }
