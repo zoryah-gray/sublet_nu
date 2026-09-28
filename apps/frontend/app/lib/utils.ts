@@ -1,6 +1,8 @@
 // Utillity functions
 //
 
+import { useEffect, useState } from 'react';
+import { useMediaQuery } from 'react-responsive';
 import type { Sublet, SubletStatus } from './definitions';
 
 // ─── Date formatting ──────────────────────────────────────────────────────────
@@ -104,4 +106,23 @@ export function deriveSubletStatus(
 export function isActive(href: string, pathname: string): boolean {
   if (href === '/' || href === '/dashboard') return pathname === href;
   return pathname === href || pathname.startsWith(href + '/');
+}
+
+// ─── SSR-safe media query ───────────────────────────────────────────────────────
+
+/**
+ * SSR-safe wrapper around react-responsive's useMediaQuery. Returns false
+ * until the client has mounted, so the first client render matches the
+ * server's default and avoids a hydration mismatch on viewport-dependent
+ * conditional mounts.
+ */
+export function useSSRSafeMediaQuery(query: Parameters<typeof useMediaQuery>[0]): boolean {
+  const [hasMounted, setHasMounted] = useState(false);
+  const matches = useMediaQuery(query);
+
+  useEffect(() => {
+    setHasMounted(true);
+  }, []);
+
+  return hasMounted && matches;
 }

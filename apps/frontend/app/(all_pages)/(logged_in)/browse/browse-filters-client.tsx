@@ -6,7 +6,6 @@
 
 import { useState, useEffect, useCallback, useTransition, useRef } from 'react';
 import Link from 'next/link';
-import { useMediaQuery } from 'react-responsive';
 import MapUI from '@/app/components/map/interactive-map';
 import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 import { format } from 'date-fns';
@@ -29,6 +28,7 @@ import Pagination from '@/app/components/pagination';
 import { cn } from '@/lib/utils';
 import { ITEMS_PER_PAGE } from '@/app/lib/definitions';
 import type { Quarter, SortOrder, Sublet } from '@/app/lib/definitions';
+import { useSSRSafeMediaQuery } from '@/app/lib/utils';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -388,7 +388,7 @@ export default function BrowseFiltersClient({
   const [isPending, startTransition] = useTransition();
   const mainRef  = useRef<HTMLElement>(null);
 
-  const isDesktop = useMediaQuery({ minWidth: 1024 });
+  const isDesktop = useSSRSafeMediaQuery({ minWidth: 1024 });
 
   // UI-only state (not serialised to URL)
   const [showFilters, setShowFilters] = useState(false);

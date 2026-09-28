@@ -1,10 +1,10 @@
 'use client';
 import Link from 'next/link';
-import { useMediaQuery } from 'react-responsive';
 import { MapPinIcon } from '@heroicons/react/24/solid';
 import { Map, MapLocateControl, MapMarker, MapMarkerClusterGroup, MapPopup, MapTileLayer, MapZoomControl } from '@/components/ui/map';
 import { EVANSTON_COORDINATES } from '@/app/lib/definitions';
 import type { Sublet } from '@/app/lib/definitions';
+import { useSSRSafeMediaQuery } from '@/app/lib/utils';
 
 export default function MapUI({
     sublets,
@@ -13,7 +13,7 @@ export default function MapUI({
     sublets: Sublet[];
     onMarkerClick: (sublet: Sublet) => void;
 }) {
-    const isMobile = useMediaQuery({ maxWidth: 767 });
+    const isMobile = useSSRSafeMediaQuery({ maxWidth: 767 });
     const zoomCtrl = isMobile ? 11 : 13;
 
     return (
