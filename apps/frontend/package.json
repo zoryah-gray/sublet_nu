@@ -3,11 +3,15 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
+    "predev": "npm --prefix ../../packages/shared run build",
     "dev": "next dev",
+    "prebuild": "npm --prefix ../../packages/shared run build",
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
+    "pretypecheck": "npm --prefix ../../packages/shared run build",
     "typecheck": "tsc --noEmit",
+    "pretest": "npm --prefix ../../packages/shared run build",
     "test": "vitest run",
     "test:watch": "vitest"
   },
