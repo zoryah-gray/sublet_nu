@@ -28,36 +28,42 @@ A short-term housing marketplace for Northwestern University students — find, 
 
 ## Project Structure
 
-```
-app/
-├── (all_pages)/
-│   └── (logged_in)/
-│       ├── (_dashboard)/         # Dashboard route group (shared sidebar layout)
-│       │   ├── dashboard/        # Overview: profile, listings, requests, favorites
-│       │   ├── listings/         # Listings management (create, edit, archive, delete)
-│       │   │   ├── new/          # New listing form (3-step)
-│       │   │   └── [id]/edit/    # Edit existing listing
-│       │   ├── favorites/        # Saved listings
-│       │   └── messages/         # Messaging threads
-│       ├── browse/               # Listing search & filter
-│       └── sublet/[id]/          # Individual listing detail page
-├── components/
-│   ├── listings/                 # Listing management components
-│   ├── sublet/                   # Sublet card, gallery, match request modal
-│   ├── dashboard/                # Dashboard-specific cards
-│   ├── navbar.tsx                # Top navigation bar with notifications
-│   ├── dashboard-sidebar.tsx     # Dashboard section navigation
-│   ├── confirm-dialog.tsx        # Generic confirmation dialog (with error handling)
-│   └── notification-banner.tsx   # Reusable success/error/warning/info banner
-├── context/
-│   └── notifications.tsx         # Global notification bell state
-└── lib/
-    ├── definitions.ts            # All types, interfaces, and constants
-    ├── mock-data.ts              # Mock data (DB replaces later)
-    └── utils.ts                  # formatDateToLocal, relativeTime
+npm-workspaces monorepo — see `docs/adr/adr_5_project_structure_backend_frontend.md`:
 
-backend/                          # AWS CDK infrastructure stack
-__tests__/                        # Vitest test suites
+```
+apps/
+├── frontend/
+│   ├── app/
+│   │   ├── (all_pages)/
+│   │   │   └── (logged_in)/
+│   │   │       ├── (_dashboard)/         # Dashboard route group (shared sidebar layout)
+│   │   │       │   ├── dashboard/        # Overview: profile, listings, requests, favorites
+│   │   │       │   ├── listings/         # Listings management (create, edit, archive, delete)
+│   │   │       │   │   ├── new/          # New listing form (3-step)
+│   │   │       │   │   └── [id]/edit/    # Edit existing listing
+│   │   │       │   ├── favorites/        # Saved listings
+│   │   │       │   └── messages/         # Messaging threads
+│   │   │       ├── browse/               # Listing search & filter
+│   │   │       └── sublet/[id]/          # Individual listing detail page
+│   │   ├── components/
+│   │   │   ├── listings/                 # Listing management components
+│   │   │   ├── sublet/                   # Sublet card, gallery, match request modal
+│   │   │   ├── dashboard/                # Dashboard-specific cards
+│   │   │   ├── navbar.tsx                # Top navigation bar with notifications
+│   │   │   ├── dashboard-sidebar.tsx     # Dashboard section navigation
+│   │   │   ├── confirm-dialog.tsx        # Generic confirmation dialog (with error handling)
+│   │   │   └── notification-banner.tsx   # Reusable success/error/warning/info banner
+│   │   ├── context/
+│   │   │   └── notifications.tsx         # Global notification bell state
+│   │   └── lib/
+│   │       ├── definitions.ts            # Types/interfaces/constants; re-exports Sublet/Quarter/SubletDisplayStatus from packages/shared
+│   │       ├── mock-data.ts              # Mock data (DB replaces later)
+│   │       └── utils.ts                  # formatDateToLocal, relativeTime
+│   └── __tests__/                        # Vitest test suites
+└── backend/                               # AWS CDK infrastructure stack
+
+packages/
+└── shared/                                # Domain types shared between apps/frontend and apps/backend
 ```
 
 ---
@@ -66,9 +72,9 @@ __tests__/                        # Vitest test suites
 
 **Server components by default.** Pages are server-rendered; only interactive islands use `'use client'`. Client state never leaks into server-rendered shells.
 
-**Single type source.** All domain types (`Sublet`, `MatchRequest`, `ListingFormData`, etc.) live in `app/lib/definitions.ts`. `mock-data.ts` re-exports them for backward compatibility. When the real DB is wired up, only `mock-data.ts` needs to change — no type updates required across the rest of the app.
+**Single import source, shared canonical types.** `Sublet`, `Quarter`, and `SubletDisplayStatus` are canonically defined in `packages/shared` (consumed by `apps/backend` too — see `.claude/docs/sql.md`) and re-exported through `apps/frontend/app/lib/definitions.ts`, so every existing import from `'@/app/lib/definitions'` keeps working unchanged. Everything else (`MatchRequest`, `ListingFormData`, etc.) still lives directly in `definitions.ts`. `mock-data.ts` re-exports the lot for backward compatibility. When the real DB is wired up, only `mock-data.ts` needs to change — no type updates required across the rest of the app.
 
-**Mock data → PostgreSQL.** All data currently comes from `app/lib/mock-data.ts`. The interfaces in `definitions.ts` are designed to map 1-to-1 with the future DB schema. `CURRENT_USER_ID = 'user-jon'` simulates an auth session.
+**Mock data → PostgreSQL.** All data currently comes from `apps/frontend/app/lib/mock-data.ts`. The interfaces in `definitions.ts`/`packages/shared` are designed to map 1-to-1 with the future DB schema. `CURRENT_USER_ID = 'user-jon'` simulates an auth session.
 
 **Price histogram computed server-side.** `browse/page.tsx` computes the histogram before rendering, so the client bundle never loads raw listing data. When the DB is connected, will swap the computation for a single aggregation query.
 
@@ -79,8 +85,8 @@ __tests__/                        # Vitest test suites
 ### Local (no Docker)
 
 ```bash
-npm install
-npm run dev
+npm install                              # from the repo root — installs the whole workspace
+npm run dev --workspace=apps/frontend
 ```
 
 ### Docker — development (hot reload)
@@ -107,13 +113,15 @@ Open [http://localhost:3000](http://localhost:3000) for either mode.
 
 ## Scripts
 
+Run from the repo root with `--workspace=apps/frontend`, or `cd apps/frontend` first:
+
 ```bash
-npm run dev        # Start development server
-npm run build      # Production build
-npm run start      # Start production server
-npm run lint       # Run ESLint
-npx tsc --noEmit   # Type check
-npx vitest run     # Run test suite
+npm run dev --workspace=apps/frontend         # Start development server
+npm run build --workspace=apps/frontend       # Production build
+npm run start --workspace=apps/frontend       # Start production server
+npm run lint --workspace=apps/frontend        # Run ESLint
+npm run typecheck --workspace=apps/frontend   # Type check
+npm run test --workspace=apps/frontend        # Run test suite
 ```
 
 ---

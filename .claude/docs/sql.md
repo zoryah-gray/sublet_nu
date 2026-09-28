@@ -19,5 +19,7 @@ Per ADR: repository pattern. `UserRepository`, `ListingRepository`,
 - `snake_case` for tables and columns, plural table names.
 - Timestamps: `created_at`, `updated_at`, `timestamptz`, always UTC.
 - Enums as Postgres enum types or CHECK constraints, matching the TypeScript
-  union types in `app/lib/definitions.ts` — one source of truth per concept.
+  union types in `packages/shared` (re-exported through
+  `apps/frontend/app/lib/definitions.ts` for frontend imports) — one source
+  of truth per concept.
 - **Quarters not Seasons** (existing convention) applies to the schema too.
