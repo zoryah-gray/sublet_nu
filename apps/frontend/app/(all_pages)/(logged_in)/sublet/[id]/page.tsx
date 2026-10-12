@@ -4,6 +4,7 @@ import { MapPinIcon, HomeIcon, CalendarDaysIcon, BoltIcon, UsersIcon } from '@he
 import { BedDouble, Bath } from 'lucide-react';
 import { MOCK_SUBLETS, MOCK_USER_PROFILES, CURRENT_USER_ID } from '@/app/lib/mock-data';
 import { QUARTER_COLORS } from '@/app/lib/definitions';
+import { canSeeExactAddress, formatApproximateAddress, formatFullAddress } from '@/app/lib/util-address';
 import BackButton from '@/app/components/sublet/back-button';
 import FavoriteButton from '@/app/components/sublet/favorite-button';
 import OwnerControls from '@/app/components/sublet/owner-controls';
@@ -20,6 +21,7 @@ export default async function SubletDetailPage({
   if (!sublet) notFound();
 
   const isOwner = sublet.ownerId === CURRENT_USER_ID;
+  const showExactAddress = canSeeExactAddress(sublet, CURRENT_USER_ID);
   const owner = MOCK_USER_PROFILES.find((p) => p.id === sublet.ownerId);
   const ownerName = owner?.name ?? 'the owner';
 
@@ -59,11 +61,14 @@ export default async function SubletDetailPage({
             <h1 className="text-2xl font-bold text-gray-900 leading-tight">{sublet.title}</h1>
             <div className="flex items-center gap-1 mt-1 text-sm text-gray-500">
               <MapPinIcon className="w-4 h-4 shrink-0" />
-              <span>{sublet.address}</span>
+              <span>{showExactAddress ? formatFullAddress(sublet) : formatApproximateAddress(sublet)}</span>
             </div>
+            {!showExactAddress && (
+              <p className="text-xs text-gray-400 mt-0.5 ml-5">Exact address shared once your match is confirmed</p>
+            )}
           </div>
           <div className="text-right shrink-0">
-            <p className="text-2xl font-bold text-violet-800">${sublet.price.toLocaleString()}</p>
+            <p className="text-2xl font-bold text-violet-800">${sublet.monthlyRent.toLocaleString()}</p>
             <p className="text-xs text-gray-400">per month</p>
           </div>
         </div>
@@ -96,16 +101,16 @@ export default async function SubletDetailPage({
             <BedDouble className="size-5 text-gray-400 shrink-0" />
             <div>
               <p className="text-lg font-bold text-gray-900">
-                {sublet.beds === 0 ? 'Studio' : sublet.beds}
+                {sublet.bedroomCount === 0 ? 'Studio' : sublet.bedroomCount}
               </p>
-              <p className="text-xs text-gray-400">Bedroom{sublet.beds !== 1 ? 's' : ''}</p>
+              <p className="text-xs text-gray-400">Bedroom{sublet.bedroomCount !== 1 ? 's' : ''}</p>
             </div>
           </div>
           <div className="bg-white rounded-xl border border-gray-200 p-4 flex items-center gap-3">
             <Bath className="size-5 text-gray-400 shrink-0" />
             <div>
-              <p className="text-lg font-bold text-gray-900">{sublet.baths}</p>
-              <p className="text-xs text-gray-400">Bathroom{sublet.baths !== 1 ? 's' : ''}</p>
+              <p className="text-lg font-bold text-gray-900">{sublet.bathroomCount}</p>
+              <p className="text-xs text-gray-400">Bathroom{sublet.bathroomCount !== 1 ? 's' : ''}</p>
             </div>
           </div>
 
@@ -115,10 +120,10 @@ export default async function SubletDetailPage({
               <p className="text-lg font-semibold text-gray-900">{sublet.placeType === 'entire' ? 'Studio' : 'Private room with roommates'}</p>
               {sublet.placeType !== 'private' ? 
                 <p className="text-xs text-gray-400">No roomates, entire place to yourself</p>
-                : sublet.roommates != null && (
+                : sublet.roommateCount != null && (
                   <div className="flex items-center gap-2 text-sm text-gray-700">
                     <UsersIcon className="size-4 text-gray-400 shrink-0" />
-                    <p className='text-xs text-gray-400'>{sublet.roommates} roommate{sublet.roommates !== 1 ? 's' : ''}</p>
+                    <p className='text-xs text-gray-400'>{sublet.roommateCount} roommate{sublet.roommateCount !== 1 ? 's' : ''}</p>
                   </div>
               )}
             </div>
@@ -132,7 +137,7 @@ export default async function SubletDetailPage({
                   <p className='text-sm text-gray-900'>Utilities included</p>
                 ) : (
                   <div>
-                    <p className="text-lg font-bold text-gray-900">~${sublet.utilitiesCost}/mo utilities</p>
+                    <p className="text-lg font-bold text-gray-900">~${sublet.monthlyUtilitiesCost}/mo utilities</p>
                     <p className="text-xs text-gray-400">Not included in monthly price</p>
                   </div>
                 )}
@@ -153,10 +158,10 @@ export default async function SubletDetailPage({
                 <span>{sublet.placeType === 'entire' ? 'Entire place to yourself' : 'Private room with roommates'}</span>
               </div>
             )}
-            {sublet.placeType === 'private' && sublet.roommates != null && (
+            {sublet.placeType === 'private' && sublet.roommateCount != null && (
               <div className="flex items-center gap-2 text-sm text-gray-700">
                 <UsersIcon className="size-4 text-gray-400 shrink-0" />
-                <span>{sublet.roommates} roommate{sublet.roommates !== 1 ? 's' : ''}</span>
+                <span>{sublet.roommateCount} roommate{sublet.roommateCount !== 1 ? 's' : ''}</span>
               </div>
             )}
             {sublet.utilitiesIncluded != null && (
@@ -165,20 +170,20 @@ export default async function SubletDetailPage({
                 {sublet.utilitiesIncluded ? (
                   <span>Utilities included</span>
                 ) : (
-                  <span>~${sublet.utilitiesCost}/mo utilities (not included in monthly price)</span>
+                  <span>~${sublet.monthlyUtilitiesCost}/mo utilities (not included in monthly price)</span>
                 )}
               </div>
             )}
-            {sublet.beds > 0 && (
+            {sublet.bedroomCount > 0 && (
               <div className="flex items-center gap-2 text-sm text-gray-700">
                 <BedDouble className="size-4 text-gray-400 shrink-0" />
-                <span>{sublet.beds} Bedroom{sublet.beds !== 1 ? 's' : ''}</span>
+                <span>{sublet.bedroomCount} Bedroom{sublet.bedroomCount !== 1 ? 's' : ''}</span>
               </div>
             )}
-            {sublet.baths > 0 && (
+            {sublet.bathroomCount > 0 && (
               <div className="flex items-center gap-2 text-sm text-gray-700">
                 <Bath className="size-4 text-gray-400 shrink-0" />
-                <span>{sublet.baths} Bathroom{sublet.baths !== 1 ? 's' : ''}</span>
+                <span>{sublet.bathroomCount} Bathroom{sublet.bathroomCount !== 1 ? 's' : ''}</span>
               </div>
             )}
             

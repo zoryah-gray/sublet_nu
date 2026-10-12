@@ -11,6 +11,13 @@ import type { Quarter, SubletDisplayStatus, Sublet } from "@sublet-nu/shared";
 
 export type { Quarter, SubletDisplayStatus, Sublet };
 
+/**
+ * A sublet as it may be sent to any student's browser: no exact street
+ * address, coords snapped to an approximate grid cell. Build one with
+ * toPublicSublet() in app/lib/util-address.ts at the server boundary.
+ */
+export type PublicSublet = Omit<Sublet, 'streetAddress'>;
+
 // ─── Enums / unions ───────────────────────────────────────────────────────────
 
 export type SortOrder   = 'asc' | 'desc' | 'new';
@@ -94,9 +101,9 @@ export interface MatchRequest {
   threadId?: string;
 }
 
-/** A match request enriched with sublet price and owner profile, plus the current user's role. */
+/** A match request enriched with sublet monthly rent and owner profile, plus the current user's role. */
 export type EnrichedRequest = MatchRequest & {
-  price: number;
+  monthlyRent: number;
   ownerName: string;
   isOwnerPublic: boolean;
   role: 'received' | 'sent';
@@ -141,7 +148,8 @@ export interface Thread {
 export interface MessageMedia {
   type: 'image' | 'video';
   url: string;
-  name: string;
+  /** Original upload filename — url is a generated storage key. */
+  fileName: string;
 }
 
 export interface Message {
@@ -157,14 +165,16 @@ export interface Message {
 
 export interface ListingFormData {
   placeType: 'entire' | 'private';
-  roommates: number;
-  address: string;
-  neighborhood: string;
-  beds: number;
-  baths: number;
-  price: number;
+  roommateCount: number;
+  streetAddress: string;
+  city: string;
+  state: string;
+  zipCode: string;
+  bedroomCount: number;
+  bathroomCount: number;
+  monthlyRent: number;
   utilitiesIncluded: boolean;
-  utilitiesCost: number;
+  monthlyUtilitiesCost: number;
   quartersAvailable: Quarter[];
   startDate: string;
   endDate: string;

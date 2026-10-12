@@ -1,0 +1,88 @@
+name: Backend CI
+
+# Same triggers as ci-frontend.yml: every push to main and every PR targeting
+# main. No path filter — a PR that only touches apps/frontend can still break
+# packages/shared, which the backend compiles against.
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  migrate-and-test:
+    name: Migrations + DB tests
+    runs-on: ubuntu-latest
+
+    # A service container is a Docker container GitHub Actions starts BEFORE
+    # the first step and destroys when the job ends — a throwaway Postgres that
+    # exists only for this run. Same image and major version as the local
+    # docker-compose `db` service, so CI and local can't disagree on Postgres
+    # behaviour.
+    services:
+      postgres:
+        image: postgres:17-alpine
+        # Not secrets (CLAUDE.md rule 5): this password guards a container that
+        # only exists on a disposable runner, holds no real data, and is never
+        # reachable from outside the runner.
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: sublet_nu_test
+        # Steps run directly on the runner VM (not inside a container), so they
+        # reach Postgres through this host port mapping at localhost:5432.
+        ports:
+          - 5432:5432
+        # Extra `docker run` flags. Actions waits until this healthcheck passes
+        # before running the first step, so migrate:up never races a Postgres
+        # that's still booting.
+        options: >-
+          --health-cmd "pg_isready -U postgres -d sublet_nu_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    # Job-level env applies to every step. node-pg-migrate reads DATABASE_URL
+    # by default (-d flag's default), and the jest DB test reads the same
+    # variable — one URL, one database, for both.
+    env:
+      DATABASE_URL: postgres://postgres:postgres@localhost:5432/sublet_nu_test
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      # apps/backend's tsconfig references packages/shared, whose types only
+      # exist after it's built (packages/shared/dist is gitignored).
+      - name: Build shared package
+        run: npm run build --workspace=packages/shared
+
+      - name: Type check
+        run: npm run typecheck --workspace=apps/backend
+
+      # Applies every migration in apps/backend/db/migrations to the empty
+      # service-container database, in filename (timestamp) order.
+      - name: Migrate up
+        run: npm run migrate:up --workspace=apps/backend
+
+      # Proves every migration's down() actually works (.claude/docs/migrations.md:
+      # "every migration has a tested down"): roll everything back, then
+      # re-apply. A broken down() or an up() that isn't re-runnable after its
+      # down() fails here, not during a real rollback.
+      - name: Migrate down (all) then up again
+        run: |
+          npm run migrate:down:all --workspace=apps/backend
+          npm run migrate:up --workspace=apps/backend
+
+      # Runs jest against the freshly migrated database. The DB test throws if
+      # DATABASE_URL is missing, so a misconfigured job fails instead of
+      # silently passing.
+      - name: Run backend tests
+        run: npm run test --workspace=apps/backend

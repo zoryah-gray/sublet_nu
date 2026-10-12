@@ -14,6 +14,21 @@ services:
     environment:
       - NODE_ENV=development
       - NEXT_TELEMETRY_DISABLED=1
+      # [DB WALKTHROUGH] Host is `db` — the service name below. Compose puts
+      # every service on one private network where each service name is a DNS
+      # hostname, so from inside this container "localhost" would be the dev
+      # container itself, not Postgres. The ${...} values are filled in by
+      # Compose (not by the container) from the file passed with --env-file:
+      #   docker compose --env-file .env.local up dev
+      # Without --env-file Compose only warns and leaves them blank — `prod`
+      # and `db` still work, only this URL would be broken.
+      - DATABASE_URL=postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
+    # [DB WALKTHROUGH] Don't start `dev` until `db`'s healthcheck passes, not
+    # merely until its container has started (Postgres takes a few seconds to
+    # accept connections after the process launches).
+    depends_on:
+      db:
+        condition: service_healthy
     command: sh -c "npm install && npm run dev"
 
   # Production — optimised multi-stage build
@@ -27,3 +42,47 @@ services:
     environment:
       - NODE_ENV=production
       - NEXT_TELEMETRY_DISABLED=1
+
+  # [DB WALKTHROUGH] Local Postgres. Start it alone with:
+  #   docker compose --env-file .env.local up -d db
+  db:
+    # Official image, major version pinned. 17 is what the planned RDS would
+    # run; a floating tag (`postgres:latest`) could jump to a new major whose
+    # on-disk format can't read the existing volume (18 also moved the data
+    # directory). `-alpine` is just a smaller base image.
+    image: postgres:17-alpine
+    # The postgres image creates the user/password/database on first boot from
+    # POSTGRES_USER / POSTGRES_PASSWORD / POSTGRES_DB in its environment. They
+    # come from .env.local (gitignored) so no secret lives in this file
+    # (CLAUDE.md rule 5). Every other key in .env.local (e.g. VERCEL_OIDC_TOKEN)
+    # is also visible inside this container — same trust boundary as the file.
+    # WARNING: `vercel env pull` overwrites .env.local and would wipe these keys.
+    # required: false — Compose validates every service's env_file on EVERY
+    # command, so a plain `env_file: .env.local` made even `docker compose up
+    # prod` fail on a machine without that file. If it's missing, only `db`
+    # suffers: the postgres image refuses to initialise without a password.
+    env_file:
+      - path: .env.local
+        required: false
+    # host:container. Binding to 127.0.0.1 means only this machine can connect
+    # — without it Docker listens on every interface, so anyone on the same
+    # Wi-Fi could reach the database. Host tools (node-pg-migrate, jest) use
+    # localhost:5432; containers on the compose network use db:5432.
+    ports:
+      - "127.0.0.1:5432:5432"
+    # Named volume (declared at the bottom) holds the data files, so data
+    # survives `docker compose down`. `docker compose down -v` deletes it.
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    # Docker runs this inside the container on an interval; the container is
+    # "healthy" once it exits 0. pg_isready exits 0 when Postgres accepts
+    # connections. `$$` escapes Compose's own ${} interpolation so the shell
+    # inside the container expands the variable from its environment instead.
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  pgdata:

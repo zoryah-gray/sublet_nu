@@ -82,7 +82,7 @@ export default function CardsLayout({ requests }: Props) {
 
         {/* Price */}
         <div className="px-4 pb-2">
-          <span className="text-lg font-bold text-violet-700">${r.price.toLocaleString()}</span>
+          <span className="text-lg font-bold text-violet-700">${r.monthlyRent.toLocaleString()}</span>
           <span className="text-xs text-gray-400">/mo</span>
           {r.role === 'sent' && (
             <span className="ml-2 text-xs text-gray-500">

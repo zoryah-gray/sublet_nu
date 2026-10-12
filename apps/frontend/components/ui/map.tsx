@@ -809,7 +809,7 @@ function MapFullscreenControl({
     const map = useMap()
     const [isFullscreen, setIsFullscreen] = useState(false)
 
-    const { L } = useLeaflet()
+    const { L } = useLeaflet({ fullscreen: true })
 
     useEffect(() => {
         if (!L) return
@@ -980,7 +980,7 @@ function MapDrawControl({
     onLayersChange?: (layers: L.FeatureGroup) => void
     position?: string
 }) {
-    const { L, LeafletDraw } = useLeaflet()
+    const { L, LeafletDraw } = useLeaflet({ draw: true })
     const map = useMap()
     const [featureGroup, setFeatureGroup] = useState<L.FeatureGroup | null>(
         null
@@ -1063,7 +1063,7 @@ function MapDrawShapeButton<T extends Draw.Feature>({
     if (!drawContext) {
         throw new Error("MapDrawShapeButton must be used within MapDrawControl")
     }
-    const { L } = useLeaflet()
+    const { L } = useLeaflet({ draw: true })
     const map = useMap()
     const controlRef = useRef<T | null>(null)
     const { activeMode, setActiveMode } = drawContext
@@ -1261,7 +1261,7 @@ function MapDrawActionButton<T extends EditToolbar.Edit | EditToolbar.Delete>({
             "MapDrawActionButton must be used within MapDrawControl"
         )
 
-    const { L } = useLeaflet()
+    const { L } = useLeaflet({ draw: true })
     const map = useMap()
     const { featureGroup, activeMode, setActiveMode, layersCount } = drawContext
     const isActive = activeMode === drawAction
@@ -1310,7 +1310,7 @@ function MapDrawEdit({
     },
     ...props
 }: Omit<EditToolbar.EditHandlerOptions, "featureGroup">) {
-    const { L } = useLeaflet()
+    const { L } = useLeaflet({ draw: true })
     const mapDrawHandleIcon = useMapDrawHandleIcon()
     const drawContext = useMapDrawContext()
     if (!drawContext) {
@@ -1446,7 +1446,7 @@ function MapControlContainer({
 }
 
 function useMapDrawHandleIcon() {
-    const { L } = useLeaflet()
+    const { L } = useLeaflet({ draw: true })
     if (!L) return null
 
     return L.divIcon({
@@ -1457,35 +1457,57 @@ function useMapDrawHandleIcon() {
     })
 }
 
-function useLeaflet() {
-    const [L, setL] = useState<typeof import("leaflet") | null>(null)
-    const [LeafletDraw, setLeafletDraw] = useState<
-        typeof import("leaflet-draw") | null
-    >(null)
+// Module-level cache. Every map component calls useLeaflet(), and the browse
+// map can mount hundreds of markers: once Leaflet has loaded, later callers get
+// it synchronously instead of each rendering null, awaiting the import in an
+// effect, and re-rendering.
+let leafletModule: typeof import("leaflet") | null = null
+let leafletDrawModule: typeof import("leaflet-draw") | null = null
+let fullscreenLoaded = false
+
+/** Imports Leaflet plus only the plugins the caller asked for, reusing anything already loaded. */
+async function loadLeafletModules(draw: boolean, fullscreen: boolean) {
+    if (!leafletModule) leafletModule = (await import("leaflet")).default
+    if (fullscreen && !fullscreenLoaded) {
+        const leafletFullscreen = await import("leaflet.fullscreen")
+        if (leafletModule.Control && !leafletModule.Control.FullScreen) {
+            leafletModule.Control.FullScreen =
+                leafletFullscreen.default || leafletFullscreen
+        }
+        fullscreenLoaded = true
+    }
+    if (draw && !leafletDrawModule) leafletDrawModule = await import("leaflet-draw")
+}
+
+/**
+ * Lazily loads Leaflet on the client. leaflet-draw and leaflet.fullscreen are
+ * opt-in so a map that uses neither (browse) never downloads them.
+ */
+function useLeaflet({ draw = false, fullscreen = false }: { draw?: boolean; fullscreen?: boolean } = {}) {
+    const isReady = () =>
+        leafletModule !== null &&
+        (!draw || leafletDrawModule !== null) &&
+        (!fullscreen || fullscreenLoaded)
+    const [, setLoaded] = useState(isReady)
 
     useEffect(() => {
-        async function loadLeaflet() {
-            const leaflet = await import("leaflet")
-            const leafletFullscreen = await import("leaflet.fullscreen")
-            const leafletDraw = await import("leaflet-draw")
-
-            const L_object = leaflet.default
-            if (L_object.Control && !L_object.Control.FullScreen) {
-                L_object.Control.FullScreen =
-                    leafletFullscreen.default || leafletFullscreen
-            }
-
-            setLeafletDraw(leafletDraw)
-            setL(L_object)
+        if (isReady() || typeof window === "undefined") return
+        let cancelled = false
+        loadLeafletModules(draw, fullscreen).then(() => {
+            if (!cancelled) setLoaded(true)
+        })
+        return () => {
+            cancelled = true
         }
+        // isReady only reads module-level state plus draw/fullscreen
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [draw, fullscreen])
 
-        if (L && LeafletDraw) return
-        if (typeof window === "undefined") return
-
-        loadLeaflet()
-    }, [L, LeafletDraw])
-
-    return { L, LeafletDraw }
+    const ready = isReady()
+    return {
+        L: ready ? leafletModule : null,
+        LeafletDraw: ready && draw ? leafletDrawModule : null,
+    }
 }
 
 function useDebounceLoadingState(delay = 200) {

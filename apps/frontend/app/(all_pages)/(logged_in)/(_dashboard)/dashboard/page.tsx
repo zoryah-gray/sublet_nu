@@ -157,9 +157,9 @@ function MyListingsCard() {
                   )}
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-semibold text-gray-900 truncate">{s.title}</p>
-                    <p className="text-xs text-gray-500 truncate">{s.address}</p>
+                    <p className="text-xs text-gray-500 truncate">{s.streetAddress}</p>
                     <p className="text-xs font-medium text-violet-700 mt-0.5">
-                      ${s.price.toLocaleString()}/mo
+                      ${s.monthlyRent.toLocaleString()}/mo
                     </p>
                     <div className="flex gap-1.5 mt-2 flex-wrap">
                       <Button variant="outline" size="xs" className="gap-1" asChild>
@@ -211,7 +211,7 @@ export default function DashboardPage() {
     const owner = MOCK_USER_PROFILES.find((p) => p.id === r.ownerId);
     return {
       ...r,
-      price: sublet?.price ?? 0,
+      monthlyRent: sublet?.monthlyRent ?? 0,
       ownerName: owner?.name ?? 'Unknown',
       isOwnerPublic: owner?.isPublic ?? false,
     };

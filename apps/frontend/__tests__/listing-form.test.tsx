@@ -11,8 +11,9 @@ vi.mock('next/navigation', () => ({
 }));
 
 async function fillStep1(user: ReturnType<typeof userEvent.setup>) {
-  await user.type(screen.getByPlaceholderText(/hinman ave/i), '1234 Hinman Ave, Evanston, IL');
-  await user.type(screen.getByPlaceholderText(/central evanston/i), 'Central Evanston');
+  await user.type(screen.getByPlaceholderText(/hinman ave/i), '1234 Hinman Ave');
+  await user.type(screen.getByPlaceholderText('e.g. Evanston'), 'Evanston');
+  await user.type(screen.getByPlaceholderText('60201'), '60202');
 }
 
 async function fillStep2(user: ReturnType<typeof userEvent.setup>) {
@@ -48,14 +49,28 @@ describe('ListingForm', () => {
     expect(screen.getByRole('heading', { name: 'The Basics', level: 2 })).toBeInTheDocument();
   });
 
-  it('clicking Continue on empty step 1 shows validation errors for address and neighborhood', async () => {
+  it('clicking Continue on empty step 1 shows validation errors for street address, city, and ZIP', async () => {
     const user = userEvent.setup();
     render(<ListingForm mode="new" />);
 
     await user.click(screen.getByRole('button', { name: /continue/i }));
 
-    expect(screen.getByText('Address is required')).toBeInTheDocument();
-    expect(screen.getByText('Neighborhood is required')).toBeInTheDocument();
+    expect(screen.getByText('Street address is required')).toBeInTheDocument();
+    expect(screen.getByText('City is required')).toBeInTheDocument();
+    expect(screen.getByText('ZIP code must be 5 digits')).toBeInTheDocument();
+  });
+
+  it('step 1 rejects a ZIP code shorter than 5 digits', async () => {
+    const user = userEvent.setup();
+    render(<ListingForm mode="new" />);
+
+    await user.type(screen.getByPlaceholderText(/hinman ave/i), '1234 Hinman Ave');
+    await user.type(screen.getByPlaceholderText('e.g. Evanston'), 'Evanston');
+    await user.type(screen.getByPlaceholderText('60201'), '6020');
+    await user.click(screen.getByRole('button', { name: /continue/i }));
+
+    expect(screen.getByText('ZIP code must be 5 digits')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'The Basics', level: 2 })).toBeInTheDocument();
   });
 
   it('filling required step 1 fields and clicking Continue advances to step 2', async () => {
@@ -107,8 +122,7 @@ describe('ListingForm', () => {
 
     // On step 3 — review
     expect(screen.getByRole('heading', { level: 2, name: 'Review your listing' })).toBeInTheDocument();
-    expect(screen.getByText('1234 Hinman Ave, Evanston, IL')).toBeInTheDocument();
-    expect(screen.getByText('Central Evanston')).toBeInTheDocument();
+    expect(screen.getByText('1234 Hinman Ave, Evanston, IL 60202')).toBeInTheDocument();
     expect(screen.getByText('My Test Listing')).toBeInTheDocument();
   });
 

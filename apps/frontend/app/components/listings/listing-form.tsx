@@ -6,17 +6,20 @@ import { ChevronLeftIcon, ChevronRightIcon, CheckIcon } from '@heroicons/react/2
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import type { Quarter, ListingFormData } from '@/app/lib/definitions';
+import { formatFullAddress } from '@/app/lib/util-address';
 
 const EMPTY_FORM: ListingFormData = {
   placeType: 'entire',
-  roommates: 0,
-  address: '',
-  neighborhood: '',
-  beds: 1,
-  baths: 1,
-  price: 0,
+  roommateCount: 0,
+  streetAddress: '',
+  city: '',
+  state: 'IL',
+  zipCode: '',
+  bedroomCount: 1,
+  bathroomCount: 1,
+  monthlyRent: 0,
   utilitiesIncluded: false,
-  utilitiesCost: 0,
+  monthlyUtilitiesCost: 0,
   quartersAvailable: [],
   startDate: '',
   endDate: '',
@@ -55,21 +58,24 @@ const STEP_TITLES = ['The Basics', 'Pricing, Availability & Details', 'Review'];
 
 function validateStep1(data: ListingFormData): Record<string, string> {
   const errors: Record<string, string> = {};
-  if (!data.address.trim()) errors.address = 'Address is required';
-  if (!data.neighborhood.trim()) errors.neighborhood = 'Neighborhood is required';
+  // state/zipCode patterns mirror the CHECK constraints on sublets.state / sublets.zip_code
+  if (!data.streetAddress.trim()) errors.streetAddress = 'Street address is required';
+  if (!data.city.trim()) errors.city = 'City is required';
+  if (!/^[A-Z]{2}$/.test(data.state)) errors.state = 'Use a 2-letter state code';
+  if (!/^[0-9]{5}$/.test(data.zipCode)) errors.zipCode = 'ZIP code must be 5 digits';
   return errors;
 }
 
 function validateStep2(data: ListingFormData): Record<string, string> {
   const errors: Record<string, string> = {};
-  if (data.price <= 0) errors.price = 'Price must be greater than 0';
+  if (data.monthlyRent <= 0) errors.monthlyRent = 'Price must be greater than 0';
   if (data.quartersAvailable.length === 0) errors.quartersAvailable = 'Select at least one quarter';
   if (!data.startDate) errors.startDate = 'Start date is required';
   if (!data.endDate) errors.endDate = 'End date is required';
   if (data.startDate && data.endDate && data.startDate >= data.endDate)
     errors.endDate = 'End date must be after start date';
-  if (!data.utilitiesIncluded && data.utilitiesCost <= 0)
-    errors.utilitiesCost = 'Enter estimated utilities cost';
+  if (!data.utilitiesIncluded && data.monthlyUtilitiesCost <= 0)
+    errors.monthlyUtilitiesCost = 'Enter estimated utilities cost';
   if (!data.title.trim()) errors.title = 'Title is required';
   if (data.title.length > 80) errors.title = 'Title must be 80 characters or fewer';
   if (!data.description.trim()) errors.description = 'Description is required';
@@ -273,38 +279,61 @@ export default function ListingForm({ mode, subletId: _subletId, initialData }: 
             {data.placeType === 'private' && (
               <FieldGroup label="Number of roommates">
                 <NumberStepper
-                  value={data.roommates}
+                  value={data.roommateCount}
                   min={1}
                   max={8}
-                  onChange={(v) => set('roommates', v)}
+                  onChange={(v) => set('roommateCount', v)}
                 />
               </FieldGroup>
             )}
 
-            <FieldGroup label="Address" error={errors.address}>
+            <FieldGroup label="Street address" error={errors.streetAddress}>
               <input
                 type="text"
-                placeholder="e.g. 1234 Hinman Ave, Evanston, IL"
-                value={data.address}
-                onChange={(e) => set('address', e.target.value)}
-                className={cn(inputClass, errors.address && 'border-red-400 focus:border-red-400 focus:ring-red-100')}
+                placeholder="e.g. 1234 Hinman Ave"
+                value={data.streetAddress}
+                onChange={(e) => set('streetAddress', e.target.value)}
+                className={cn(inputClass, errors.streetAddress && 'border-red-400 focus:border-red-400 focus:ring-red-100')}
               />
             </FieldGroup>
 
-            <FieldGroup label="Neighborhood" error={errors.neighborhood}>
-              <input
-                type="text"
-                placeholder="e.g. Central Evanston"
-                value={data.neighborhood}
-                onChange={(e) => set('neighborhood', e.target.value)}
-                className={cn(inputClass, errors.neighborhood && 'border-red-400 focus:border-red-400 focus:ring-red-100')}
-              />
-            </FieldGroup>
+            <div className="grid grid-cols-[1fr_5rem_6.5rem] gap-3">
+              <FieldGroup label="City" error={errors.city}>
+                <input
+                  type="text"
+                  placeholder="e.g. Evanston"
+                  value={data.city}
+                  onChange={(e) => set('city', e.target.value)}
+                  className={cn(inputClass, errors.city && 'border-red-400 focus:border-red-400 focus:ring-red-100')}
+                />
+              </FieldGroup>
+              <FieldGroup label="State" error={errors.state}>
+                <input
+                  type="text"
+                  maxLength={2}
+                  placeholder="IL"
+                  value={data.state}
+                  onChange={(e) => set('state', e.target.value.toUpperCase())}
+                  className={cn(inputClass, errors.state && 'border-red-400 focus:border-red-400 focus:ring-red-100')}
+                />
+              </FieldGroup>
+              <FieldGroup label="ZIP" error={errors.zipCode}>
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  maxLength={5}
+                  placeholder="60201"
+                  value={data.zipCode}
+                  onChange={(e) => set('zipCode', e.target.value.replace(/\D/g, ''))}
+                  className={cn(inputClass, errors.zipCode && 'border-red-400 focus:border-red-400 focus:ring-red-100')}
+                />
+              </FieldGroup>
+            </div>
 
             <FieldGroup label="Bedrooms">
               <div className="flex gap-2 flex-wrap">
                 {BEDS_OPTIONS.map((opt) => (
-                  <button key={opt.value} type="button" onClick={() => set('beds', opt.value)} className={chipClass(data.beds === opt.value)}>
+                  <button key={opt.value} type="button" onClick={() => set('bedroomCount', opt.value)} className={chipClass(data.bedroomCount === opt.value)}>
                     {opt.label}
                   </button>
                 ))}
@@ -314,7 +343,7 @@ export default function ListingForm({ mode, subletId: _subletId, initialData }: 
             <FieldGroup label="Bathrooms">
               <div className="flex gap-2 flex-wrap">
                 {BATHS_OPTIONS.map((opt) => (
-                  <button key={opt.value} type="button" onClick={() => set('baths', opt.value)} className={chipClass(data.baths === opt.value)}>
+                  <button key={opt.value} type="button" onClick={() => set('bathroomCount', opt.value)} className={chipClass(data.bathroomCount === opt.value)}>
                     {opt.label}
                   </button>
                 ))}
@@ -328,16 +357,16 @@ export default function ListingForm({ mode, subletId: _subletId, initialData }: 
           <div className="space-y-5">
             <h2 className="text-xl font-bold text-gray-900">Pricing, Availability & Details</h2>
 
-            <FieldGroup label="Monthly rent (USD)" error={errors.price}>
+            <FieldGroup label="Monthly rent (USD)" error={errors.monthlyRent}>
               <div className="relative">
                 <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">$</span>
                 <input
                   type="number"
                   min="0"
                   placeholder="1500"
-                  value={data.price || ''}
-                  onChange={(e) => set('price', Number(e.target.value))}
-                  className={cn(inputClass, 'pl-7', errors.price && 'border-red-400 focus:border-red-400 focus:ring-red-100')}
+                  value={data.monthlyRent || ''}
+                  onChange={(e) => set('monthlyRent', Number(e.target.value))}
+                  className={cn(inputClass, 'pl-7', errors.monthlyRent && 'border-red-400 focus:border-red-400 focus:ring-red-100')}
                 />
               </div>
             </FieldGroup>
@@ -349,7 +378,7 @@ export default function ListingForm({ mode, subletId: _subletId, initialData }: 
                   checked={data.utilitiesIncluded}
                   onChange={(e) => {
                     set('utilitiesIncluded', e.target.checked);
-                    if (e.target.checked) set('utilitiesCost', 0);
+                    if (e.target.checked) set('monthlyUtilitiesCost', 0);
                   }}
                   className="rounded border-gray-300 text-violet-600"
                 />
@@ -364,13 +393,13 @@ export default function ListingForm({ mode, subletId: _subletId, initialData }: 
                       type="number"
                       min="0"
                       placeholder="150"
-                      value={data.utilitiesCost === 0 ? '' : data.utilitiesCost}
-                      onChange={(e) => set('utilitiesCost', Number(e.target.value))}
-                      className={cn(inputClass, 'pl-7', errors.utilitiesCost && 'border-red-400 focus:border-red-400 focus:ring-red-100')}
+                      value={data.monthlyUtilitiesCost === 0 ? '' : data.monthlyUtilitiesCost}
+                      onChange={(e) => set('monthlyUtilitiesCost', Number(e.target.value))}
+                      className={cn(inputClass, 'pl-7', errors.monthlyUtilitiesCost && 'border-red-400 focus:border-red-400 focus:ring-red-100')}
                     />
                   </div>
-                  {errors.utilitiesCost && (
-                    <p className="text-xs text-red-600 mt-1">{errors.utilitiesCost}</p>
+                  {errors.monthlyUtilitiesCost && (
+                    <p className="text-xs text-red-600 mt-1">{errors.monthlyUtilitiesCost}</p>
                   )}
                 </div>
               )}
@@ -460,21 +489,20 @@ export default function ListingForm({ mode, subletId: _subletId, initialData }: 
                   value={data.placeType === 'entire' ? 'Entire place' : 'Private room'}
                 />
                 {data.placeType === 'private' && (
-                  <ReviewRow label="Roommates" value={data.roommates} />
+                  <ReviewRow label="Roommates" value={data.roommateCount} />
                 )}
-                <ReviewRow label="Address" value={data.address || '—'} />
-                <ReviewRow label="Neighborhood" value={data.neighborhood || '—'} />
-                <ReviewRow label="Bedrooms" value={data.beds === 0 ? 'Studio' : data.beds} />
-                <ReviewRow label="Bathrooms" value={data.baths} />
+                <ReviewRow label="Address" value={data.streetAddress ? formatFullAddress(data) : '—'} />
+                <ReviewRow label="Bedrooms" value={data.bedroomCount === 0 ? 'Studio' : data.bedroomCount} />
+                <ReviewRow label="Bathrooms" value={data.bathroomCount} />
               </ReviewSection>
 
               <div className="h-px bg-gray-100" />
 
               <ReviewSection title="Pricing & Availability">
-                <ReviewRow label="Monthly rent" value={`$${data.price.toLocaleString()}/mo`} />
+                <ReviewRow label="Monthly rent" value={`$${data.monthlyRent.toLocaleString()}/mo`} />
                 <ReviewRow
                   label="Utilities"
-                  value={data.utilitiesIncluded ? 'Included' : `~$${data.utilitiesCost}/mo est.`}
+                  value={data.utilitiesIncluded ? 'Included' : `~$${data.monthlyUtilitiesCost}/mo est.`}
                 />
                 <ReviewRow label="Quarters" value={data.quartersAvailable.join(', ') || '—'} />
                 <ReviewRow

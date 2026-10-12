@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { MapPinIcon, HomeIcon, PencilSquareIcon } from '@heroicons/react/24/outline';
 import { CURRENT_USER_ID } from '@/app/lib/mock-data';
-import type { Sublet } from '@/app/lib/definitions';
+import type { PublicSublet } from '@/app/lib/definitions';
 import { QUARTER_COLORS } from '@/app/lib/definitions';
 import CardFavoriteButton from '@/app/components/sublet/card-favorite-button';
 
@@ -25,7 +25,7 @@ function PlaceholderImage({ hue }: { hue: string }) {
 }
 
 interface SubletCardProps {
-  sublet: Sublet;
+  sublet: PublicSublet;
   initialFavorited?: boolean;
   // Callback is only used when this card appears inside a client tree (e.g. FavoritesPage).
   // When rendered server-side (e.g. browse), it is omitted.
@@ -72,13 +72,13 @@ export default function SubletCard({
 
           <div className="flex items-center gap-1 mt-0.5 text-xs text-gray-400">
             <MapPinIcon className="w-3 h-3 shrink-0" />
-            <span className="truncate">{sublet.neighborhood}</span>
+            <span className="truncate">{sublet.city}</span>
           </div>
 
           <div className="flex items-center gap-2 mt-2 text-xs text-gray-500">
-            <span>{sublet.beds === 0 ? 'Studio' : `${sublet.beds} bed`}</span>
+            <span>{sublet.bedroomCount === 0 ? 'Studio' : `${sublet.bedroomCount} bed`}</span>
             <span className="text-gray-200">·</span>
-            <span>{sublet.baths} bath</span>
+            <span>{sublet.bathroomCount} bath</span>
           </div>
 
           <div className="flex flex-wrap gap-1 mt-2">
@@ -93,7 +93,7 @@ export default function SubletCard({
           </div>
 
           <p className="mt-2.5 font-bold text-violet-800 text-sm">
-            ${sublet.price.toLocaleString()}
+            ${sublet.monthlyRent.toLocaleString()}
             <span className="text-xs font-normal text-gray-400">/mo</span>
           </p>
         </div>

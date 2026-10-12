@@ -1,8 +1,9 @@
 # SubletNU — Entity Relationship Diagram
 
-Reflects `schema.sql` as of 09/07/26. Reference only — no live database yet
-(see `schema.sql`'s own header and `.claude/plans/PLAN.md` for the Day 2 vs.
-Day 3 split).
+Reflects `schema.sql` as of 10/10/26 (through migration
+`1791678012243_split-sublet-address`). The ERD lists keys and status columns
+only, so the Day 3 column renames don't appear in it. Built by
+`db/migrations/` locally and in CI; no deployed database yet.
 
 ```mermaid
 erDiagram

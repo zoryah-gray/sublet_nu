@@ -8,6 +8,7 @@ import BrowseFiltersClient from './browse-filters-client';
 import type { UrlFilters } from './browse-filters-client';
 import { MOCK_SUBLETS, getFilteredSublets } from '@/app/lib/mock-data';
 import { ITEMS_PER_PAGE, type Quarter, type SortOrder } from '@/app/lib/definitions';
+import { toPublicSublet } from '@/app/lib/util-address';
 
 // ─── Price histogram (server-side) ───────────────────────────────────────────
 //
@@ -73,7 +74,7 @@ export default async function BrowsePage({
 
   // Compute histogram data from all listings (future: single DB aggregation query).
   const { dataMaxPrice, priceBuckets, bucketMax, bucketWidth } =
-    computePriceHistogram(MOCK_SUBLETS.map((s) => s.price));
+    computePriceHistogram(MOCK_SUBLETS.map((s) => s.monthlyRent));
 
   const filters = parseFilters(params, dataMaxPrice);
   const page    = Math.max(1, Number(typeof params.page === 'string' ? params.page : '1') || 1);
@@ -86,7 +87,9 @@ export default async function BrowsePage({
     sortOrder: filters.sortOrder !== 'new' ? filters.sortOrder : undefined,
   });
 
-  const pageSublets = filtered.slice((page - 1) * ITEMS_PER_PAGE, page * ITEMS_PER_PAGE);
+  // Only public shapes cross into Client Components (cards, map) — see toPublicSublet.
+  const publicSublets = filtered.map(toPublicSublet);
+  const pageSublets = publicSublets.slice((page - 1) * ITEMS_PER_PAGE, page * ITEMS_PER_PAGE);
 
   const cardGrid = (
     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
@@ -108,7 +111,7 @@ export default async function BrowsePage({
         priceBuckets={priceBuckets}
         bucketMax={bucketMax}
         bucketWidth={bucketWidth}
-        sublets={filtered}
+        sublets={publicSublets}
       >
         {cardGrid}
       </BrowseFiltersClient>

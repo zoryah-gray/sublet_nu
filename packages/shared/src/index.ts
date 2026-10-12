@@ -11,12 +11,18 @@ export type SubletDisplayStatus = 'public' | 'restricted' | 'private' | 'deleted
 export interface Sublet {
   id: string;
   title: string;
-  address: string;
+  /** Street line only, e.g. '1234 Hinman Ave'. Full display string: formatFullAddress in apps/frontend/app/lib/util-address.ts. */
+  streetAddress: string;
+  city: string;
+  /** 2-letter code, e.g. 'IL'. */
+  state: string;
+  /** 5 digits, kept as a string so leading zeros survive. */
+  zipCode: string;
   coords: { lat: number; lng: number };
-  neighborhood: string;
-  price: number;
-  beds: number;
-  baths: number;
+  monthlyRent: number;
+  /** 0 = studio. */
+  bedroomCount: number;
+  bathroomCount: number;
   quarters: Quarter[];
   startDate: string;
   endDate: string;
@@ -27,10 +33,10 @@ export interface Sublet {
   featuredImage?: string;
   videos?: string[];
   placeType?: 'entire' | 'private';
-  roommates?: number;
+  roommateCount?: number;
   utilitiesIncluded?: boolean;
   /** Estimated monthly utilities cost when not included in rent. */
-  utilitiesCost?: number;
+  monthlyUtilitiesCost?: number;
   ownerId: string;
 
   displayStatus: SubletDisplayStatus;

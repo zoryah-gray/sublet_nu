@@ -7,15 +7,23 @@
   "scripts": {
     "build": "tsc",
     "watch": "tsc -w",
+    "typecheck": "tsc --noEmit",
     "test": "jest",
-    "cdk": "cdk"
+    "cdk": "cdk",
+    "migrate:up": "node-pg-migrate up -m db/migrations",
+    "migrate:down": "node-pg-migrate down -m db/migrations",
+    "migrate:down:all": "node-pg-migrate down 0 --timestamp -m db/migrations",
+    "migrate:create": "node-pg-migrate create -m db/migrations -j mjs"
   },
   "devDependencies": {
     "@types/jest": "^30",
     "@types/node": "^24.10.1",
-    "jest": "^30",
-    "ts-jest": "^29",
+    "@types/pg": "^8.23.1",
     "aws-cdk": "2.1118.0",
+    "jest": "^30",
+    "node-pg-migrate": "^9.0.0",
+    "pg": "^8.23.1",
+    "ts-jest": "^29",
     "ts-node": "^10.9.2",
     "typescript": "~5.9.3"
   },

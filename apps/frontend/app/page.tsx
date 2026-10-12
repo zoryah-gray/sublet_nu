@@ -49,12 +49,12 @@ function PreviewCard({ sublet }: { sublet: (typeof MOCK_SUBLETS)[0] }) {
         </p>
         <div className="flex items-center gap-0.5 mt-0.5 text-[11px] text-gray-400">
           <MapPinIcon className="w-2.5 h-2.5 shrink-0" />
-          <span className="truncate">{sublet.neighborhood}</span>
+          <span className="truncate">{sublet.city}</span>
         </div>
         <div className="flex items-center gap-1.5 mt-1.5 text-[11px] text-gray-500">
-          <span>{sublet.beds === 0 ? 'Studio' : `${sublet.beds} bed`}</span>
+          <span>{sublet.bedroomCount === 0 ? 'Studio' : `${sublet.bedroomCount} bed`}</span>
           <span className="text-gray-200">·</span>
-          <span>{sublet.baths} bath</span>
+          <span>{sublet.bathroomCount} bath</span>
         </div>
         <div className="flex flex-wrap gap-1 mt-1.5">
           {sublet.quarters.slice(0, 2).map((s) => (
@@ -67,7 +67,7 @@ function PreviewCard({ sublet }: { sublet: (typeof MOCK_SUBLETS)[0] }) {
           ))}
         </div>
         <p className="mt-1.5 font-bold text-violet-800 text-xs">
-          ${sublet.price.toLocaleString()}
+          ${sublet.monthlyRent.toLocaleString()}
           <span className="text-[10px] font-normal text-gray-400">/mo</span>
         </p>
       </div>
