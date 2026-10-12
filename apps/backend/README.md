@@ -25,8 +25,9 @@ other DSL call.
 
 ### Local setup (from the repo root)
 
-1. Add `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_DB` and `DATABASE_URL`
-   (host `localhost`) to `.env.local`. `.env.example` lists the keys.
+1. Copy the keys from `.env.example` into `.env.local`. Generate the password
+   with `openssl rand -hex 24` (hex, because base64 characters like `/` break
+   `DATABASE_URL`), and use the same password inside `DATABASE_URL` (host `localhost`).
 2. Start Postgres: `docker compose --env-file .env.local up -d db`
 3. Load the env into your shell: `set -a && source .env.local && set +a`
 4. Run the migrations and tests:
