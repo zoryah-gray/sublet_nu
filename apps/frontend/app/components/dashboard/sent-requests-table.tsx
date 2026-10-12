@@ -11,7 +11,7 @@ import ConfirmDialog from '@/app/components/confirm-dialog';
 import { relativeTime } from '@/app/lib/utils';
 
 export type SentRequestRow = MatchRequest & {
-  price: number;
+  monthlyRent: number;
   ownerName: string;
   isOwnerPublic: boolean;
 };
@@ -118,7 +118,7 @@ export default function SentRequestsTable({ requests, fullPage }: SentRequestsTa
 
                   {/* Price + owner */}
                   <div className="flex items-center gap-1.5 mt-0.5 text-xs text-gray-500 flex-wrap">
-                    <span className="font-medium text-violet-700">${r.price.toLocaleString()}/mo</span>
+                    <span className="font-medium text-violet-700">${r.monthlyRent.toLocaleString()}/mo</span>
                     <span>·</span>
                     <Link href={`/profile/${r.ownerId}`} className="hover:text-violet-700 transition-colors">
                       {r.ownerName}

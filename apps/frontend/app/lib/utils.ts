@@ -128,3 +128,35 @@ export function useSSRSafeMediaQuery(query: string): boolean {
     () => false,
   );
 }
+// ─── Data Saver ────────────────────────────────────────────────────────────────
+
+// navigator.connection (Network Information API) is Chromium-only and missing
+// from TypeScript's DOM lib, hence the local type.
+type NetworkInformationLike = EventTarget & { saveData?: boolean };
+
+function getConnection(): NetworkInformationLike | undefined {
+  return (navigator as Navigator & { connection?: NetworkInformationLike }).connection;
+}
+
+/**
+ * True when the user has turned on Data Saver (the browser's Save-Data
+ * signal), or their OS/browser reports prefers-reduced-data. Browsers that
+ * support neither (Safari, Firefox) always read false, so heavy media loads
+ * as normal there. Server snapshot is false, matching useSSRSafeMediaQuery.
+ */
+export function useSaveData(): boolean {
+  return useSyncExternalStore(
+    (onChange) => {
+      const connection = getConnection();
+      const mql = window.matchMedia('(prefers-reduced-data: reduce)');
+      connection?.addEventListener('change', onChange);
+      mql.addEventListener('change', onChange);
+      return () => {
+        connection?.removeEventListener('change', onChange);
+        mql.removeEventListener('change', onChange);
+      };
+    },
+    () => getConnection()?.saveData === true || window.matchMedia('(prefers-reduced-data: reduce)').matches,
+    () => false,
+  );
+}

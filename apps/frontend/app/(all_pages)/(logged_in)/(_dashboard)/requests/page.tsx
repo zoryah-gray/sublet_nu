@@ -17,7 +17,7 @@ export default function RequestsPage() {
     const owner = MOCK_USER_PROFILES.find((p) => p.id === r.ownerId);
     return {
       ...r,
-      price: sublet?.price ?? 0,
+      monthlyRent: sublet?.monthlyRent ?? 0,
       ownerName: owner?.name ?? 'Unknown',
       isOwnerPublic: owner?.isPublic ?? false,
     };

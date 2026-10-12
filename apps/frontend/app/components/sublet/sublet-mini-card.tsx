@@ -53,7 +53,7 @@ export default function SubletMiniCard({
             {sublet.title}
           </p>
           <p className="text-sm font-bold text-violet-800 mt-1">
-            ${sublet.price.toLocaleString()}
+            ${sublet.monthlyRent.toLocaleString()}
             <span className="text-xs font-normal text-gray-400">/mo</span>
           </p>
         </div>

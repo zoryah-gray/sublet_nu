@@ -9,6 +9,7 @@ import type { Sublet } from '@/app/lib/definitions';
 import { HeartIcon } from '@heroicons/react/24/outline';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
+import { formatApproximateStreet } from '@/app/lib/util-address';
 
 const FAVORITES_PER_PAGE = 4;
 
@@ -22,8 +23,8 @@ export default function FavoritesPage() {
     return favorites.filter(
       (s) =>
         s.title.toLowerCase().includes(q) ||
-        s.neighborhood.toLowerCase().includes(q) ||
-        s.address.toLowerCase().includes(q)
+        s.city.toLowerCase().includes(q) ||
+        formatApproximateStreet(s.streetAddress).toLowerCase().includes(q)
     );
   }, [favorites, query]);
 

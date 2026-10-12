@@ -1,4 +1,7 @@
 -- SubletNU — schema.sql (Not applied as a migration)
+-- Hand-maintained snapshot of the schema AFTER the latest migration in
+-- db/migrations/ (currently 1791678012243_split-sublet-address). The migrations
+-- are what actually build the database; keep this file in sync with them.
 -- Conventions per .claude/docs/sql.md: snake_case, plural tables, timestamptz UTC,
 --
 -- State-transition LEGALITY (is pending->accepted allowed right now) is enforced
@@ -35,21 +38,23 @@ CREATE TABLE sublets (
   id                  uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   owner_id            uuid NOT NULL REFERENCES users(id) ON DELETE RESTRICT,
   title               text NOT NULL,
-  address             text NOT NULL,
+  street_address      text NOT NULL,             -- street line only, e.g. '1234 Hinman Ave'
+  city                text NOT NULL,
+  state               text NOT NULL CHECK (state ~ '^[A-Z]{2}$'),     -- 2-letter code, e.g. 'IL'
+  zip_code            text NOT NULL CHECK (zip_code ~ '^[0-9]{5}$'),  -- text, not integer, so leading zeros survive
   lat                 double precision NOT NULL,
   lng                 double precision NOT NULL,
-  neighborhood        text NOT NULL,
-  price               numeric(10,2) NOT NULL,
-  beds                smallint NOT NULL,
-  baths               numeric(3,1) NOT NULL,
+  monthly_rent        numeric(10,2) NOT NULL,
+  bedroom_count       smallint NOT NULL,         -- 0 = studio
+  bathroom_count      numeric(3,1) NOT NULL,     -- 1.5 = one full + one half bath
   start_date          date NOT NULL,             -- date, not timestamptz
   end_date            date NOT NULL,
   description         text NOT NULL,
   image_hue           text,
   place_type          text CHECK (place_type IN ('entire', 'private')),
-  roommates           smallint,
+  roommate_count      smallint,
   utilities_included  boolean NOT NULL DEFAULT false,
-  utilities_cost      numeric(8,2),
+  monthly_utilities_cost numeric(8,2),           -- estimate, when utilities_included = false
 
   -- Visibility (Design 1 review §1)
   display_status      text NOT NULL DEFAULT 'private'
@@ -89,6 +94,7 @@ CREATE TABLE sublet_images (
   url         text NOT NULL,
   position    smallint NOT NULL,        -- 0 = featured image; ordering for the gallery
   created_at  timestamptz NOT NULL DEFAULT now(),
+  alt         text,                     -- accessibility alt text; nullable. width/height intentionally not stored (upload-pipeline concern)
   UNIQUE (sublet_id, position)
 );
 
@@ -192,8 +198,8 @@ CREATE TABLE message_media (
   id          uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   message_id  uuid NOT NULL REFERENCES messages(id) ON DELETE RESTRICT,
   type        text NOT NULL CHECK (type IN ('image', 'video')),
-  url         text NOT NULL,
-  name        text NOT NULL,
+  url         text NOT NULL,            -- generated storage key, not the original filename
+  file_name   text NOT NULL,            -- original upload filename; shown as caption/alt in the UI
   position    smallint NOT NULL,
   UNIQUE (message_id, position)
 );
@@ -209,7 +215,7 @@ CREATE TABLE thread_read_state (
 -- notifications
 -- ─────────────────────────────────────────────────────────────────────────────
 -- Written on: every match_requests status transition, every new message, and
--- an update to a sublet that changes price, quarters, start_date, end_date, or
+-- an update to a sublet that changes monthly_rent, quarters, start_date, end_date, or
 -- display_status (finalized field list — a typo fix in the description does
 -- NOT trigger this). subject_id is intentionally NOT a foreign key — it points
 -- into whichever table subject_type names, and Postgres cannot enforce

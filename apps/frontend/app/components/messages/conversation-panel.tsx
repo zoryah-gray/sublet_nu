@@ -51,7 +51,7 @@ function LazyMediaItem({ item }: { item: MessageMedia }) {
       <div ref={ref} className="max-w-full max-h-64 rounded-xl overflow-hidden bg-gray-100">
         {visible && (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={item.url} alt={item.name} loading="lazy" decoding="async" className="max-w-full max-h-64 object-cover" />
+          <img src={item.url} alt={item.fileName} loading="lazy" decoding="async" className="max-w-full max-h-64 object-cover" />
         )}
       </div>
     );
@@ -114,7 +114,7 @@ function StagedPreview({ items, onRemove }: { items: MessageMedia[]; onRemove: (
         <div key={i} className="relative group">
           {item.type === 'image' ? (
             // eslint-disable-next-line @next/next/no-img-element
-            <img src={item.url} alt={item.name} loading="lazy" className="h-16 w-16 rounded-xl object-cover border border-gray-200" />
+            <img src={item.url} alt={item.fileName} loading="lazy" className="h-16 w-16 rounded-xl object-cover border border-gray-200" />
           ) : (
             <div className="h-16 w-16 rounded-xl bg-gray-900 flex items-center justify-center border border-gray-700">
               <PlayIcon className="size-6 text-white/70" />
@@ -122,12 +122,12 @@ function StagedPreview({ items, onRemove }: { items: MessageMedia[]; onRemove: (
           )}
           <button
             onClick={() => onRemove(i)}
-            aria-label={`Remove ${item.name}`}
+            aria-label={`Remove ${item.fileName}`}
             className="absolute -top-1.5 -right-1.5 size-4.5 rounded-full bg-gray-800 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
           >
             <XMarkIcon className="size-2.5" />
           </button>
-          <p className="text-[10px] text-gray-400 truncate max-w-16 mt-0.5 text-center">{item.name}</p>
+          <p className="text-[10px] text-gray-400 truncate max-w-16 mt-0.5 text-center">{item.fileName}</p>
         </div>
       ))}
     </div>
@@ -214,7 +214,7 @@ export default function ConversationPanel({
     const newItems: MessageMedia[] = valid.slice(0, remaining).map((f) => ({
       type: f.type.startsWith('video/') ? 'video' : 'image',
       url:  URL.createObjectURL(f),
-      name: f.name,
+      fileName: f.name,
     }));
     setStaged((s) => [...s, ...newItems]);
   };
@@ -261,7 +261,7 @@ export default function ConversationPanel({
             {linkedSublet.title}
           </Link>
           <span className="text-xs text-gray-400 shrink-0">
-            ${linkedSublet.price.toLocaleString()}/mo
+            ${linkedSublet.monthlyRent.toLocaleString()}/mo
           </span>
           {isOwnerOfMatch && matchRequest.status === 'accepted' && onConfirmSublet && (
             <ConfirmSubletButton

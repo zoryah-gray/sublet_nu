@@ -4,6 +4,7 @@ import { CalendarDaysIcon, GlobeAltIcon, PencilSquareIcon } from '@heroicons/rea
 import { MOCK_USER_PROFILES, MOCK_SUBLETS, CURRENT_USER_ID } from '@/app/lib/mock-data';
 import BackButton from '@/app/components/sublet/back-button';
 import SubletCard from '@/app/components/sublet/sublet-card';
+import { toPublicSublet } from '@/app/lib/util-address';
 
 export default async function PublicProfilePage({
   params,
@@ -38,7 +39,7 @@ export default async function PublicProfilePage({
 
   const listings = MOCK_SUBLETS.filter(
     (s) => s.ownerId === userId && s.displayStatus === 'public',
-  );
+  ).map(toPublicSublet);
 
   return (
     <div className="flex-1 overflow-y-auto bg-gray-50">

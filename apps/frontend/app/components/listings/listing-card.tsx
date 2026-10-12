@@ -69,12 +69,12 @@ export default function ListingCard({ sublet, requests }: ListingCardProps) {
           {/* Address */}
           <div className="flex items-center gap-1 text-xs text-gray-400">
             <MapPinIcon className="size-3 shrink-0" />
-            <span className="truncate">{sublet.address}</span>
+            <span className="truncate">{sublet.streetAddress}</span>
           </div>
 
           {/* Price + specs */}
           <p className="text-xs font-medium text-violet-700">
-            ${sublet.price.toLocaleString()}/mo · {sublet.beds === 0 ? 'Studio' : `${sublet.beds} bed`} · {sublet.baths} bath
+            ${sublet.monthlyRent.toLocaleString()}/mo · {sublet.bedroomCount === 0 ? 'Studio' : `${sublet.bedroomCount} bed`} · {sublet.bathroomCount} bath
           </p>
 
           {/* Quarter badges */}

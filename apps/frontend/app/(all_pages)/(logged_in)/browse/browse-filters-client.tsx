@@ -27,8 +27,8 @@ import SearchBar from '@/app/components/search-bar';
 import Pagination from '@/app/components/pagination';
 import { cn } from '@/lib/utils';
 import { ITEMS_PER_PAGE } from '@/app/lib/definitions';
-import type { Quarter, SortOrder, Sublet } from '@/app/lib/definitions';
-import { useSSRSafeMediaQuery } from '@/app/lib/utils';
+import type { PublicSublet, Quarter, SortOrder } from '@/app/lib/definitions';
+import { useSaveData, useSSRSafeMediaQuery } from '@/app/lib/utils';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -366,7 +366,7 @@ interface BrowseFiltersClientProps {
   /** Width of each price bucket in dollars. */
   bucketWidth: number;
   /** All filtered sublets (unpaginated) passed to the map. */
-  sublets: Sublet[];
+  sublets: PublicSublet[];
   /** Server-rendered card grid (or empty state) passed as children. */
   children: React.ReactNode;
 }
@@ -389,12 +389,17 @@ export default function BrowseFiltersClient({
   const mainRef  = useRef<HTMLElement>(null);
 
   const isDesktop = useSSRSafeMediaQuery('(min-width: 1024px)');
+  // Data Saver: the desktop sidebar map would otherwise load tiles on page
+  // load, so it waits for an explicit tap. On mobile the Map toggle already is
+  // that tap, so it loads straight away.
+  const saveData = useSaveData();
+  const [mapRequested, setMapRequested] = useState(false);
 
   // UI-only state (not serialised to URL)
   const [showFilters, setShowFilters] = useState(false);
   const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined);
   const [placeType, setPlaceType] = useState<PlaceType | undefined>(undefined);
-  const [selectedSublet, setSelectedSublet] = useState<Sublet | null>(null);
+  const [selectedSublet, setSelectedSublet] = useState<PublicSublet | null>(null);
   const [mobileView, setMobileView] = useState<'list' | 'map'>('list');
 
   // Local query for the search input so keystrokes don't trigger navigation on
@@ -470,7 +475,7 @@ export default function BrowseFiltersClient({
   };
 
   // ── Map marker click: show bottom sheet on mobile map view, scroll to card otherwise ─
-  const handleMarkerClick = useCallback((sublet: Sublet) => {
+  const handleMarkerClick = useCallback((sublet: PublicSublet) => {
     setSelectedSublet(sublet);
     if (mobileView === 'map') return;
     const idx = sublets.findIndex(s => s.id === sublet.id);
@@ -524,7 +529,7 @@ export default function BrowseFiltersClient({
             className="flex-1"
             value={localQuery}
             onChange={setLocalQuery}
-            placeholder="Search by title, address, or neighborhood…"
+            placeholder="Search by title, address, or city…"
           />
           {/* Mobile Map / List toggle */}
           <Button
@@ -606,8 +611,17 @@ export default function BrowseFiltersClient({
             ? 'hidden lg:block lg:h-auto lg:w-80 xl:w-96 lg:border-l'
             : 'flex flex-1 flex-col lg:block lg:h-auto lg:w-80 xl:w-96 lg:border-l',
         )}>
-          {(isDesktop || mobileView === 'map') && (
-            <MapUI sublets={sublets} onMarkerClick={handleMarkerClick} />
+          {mobileView === 'map' || (isDesktop && (!saveData || mapRequested)) ? (
+            <MapUI sublets={sublets} onMarkerClick={handleMarkerClick} saveData={saveData} />
+          ) : isDesktop && (
+            <div className="h-full flex flex-col items-center justify-center gap-2 p-6 text-center bg-slate-50">
+              <MapIcon className="size-8 text-gray-400" />
+              <p className="text-sm font-medium text-gray-700">Map paused to save data</p>
+              <p className="text-xs text-gray-500">Data Saver is on, so map images aren't loaded automatically.</p>
+              <Button variant="outline" size="sm" className="mt-1" onClick={() => setMapRequested(true)}>
+                Load map
+              </Button>
+            </div>
           )}
 
           {/* Mobile bottom sheet — appears when a marker is tapped in map view */}
@@ -650,7 +664,7 @@ export default function BrowseFiltersClient({
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
                       <p className="font-semibold text-gray-900 text-sm leading-snug truncate">{selectedSublet.title}</p>
-                      <p className="text-xs text-gray-500 mt-0.5 truncate">{selectedSublet.neighborhood}</p>
+                      <p className="text-xs text-gray-500 mt-0.5 truncate">{selectedSublet.city}</p>
                     </div>
                     {/* <button
                       onClick={() => setSelectedSublet(null)}
@@ -662,11 +676,11 @@ export default function BrowseFiltersClient({
                   </div>
                   <div className="mt-2 flex items-baseline justify-between">
                     <div>
-                      <span className="text-base font-bold text-violet-800">${selectedSublet.price.toLocaleString()}</span>
+                      <span className="text-base font-bold text-violet-800">${selectedSublet.monthlyRent.toLocaleString()}</span>
                       <span className="text-xs text-gray-500">/mo</span>
                     </div>
                     <span className="text-xs text-gray-500">
-                      {selectedSublet.beds === 0 ? 'Studio' : `${selectedSublet.beds} bd`} · {selectedSublet.baths} ba
+                      {selectedSublet.bedroomCount === 0 ? 'Studio' : `${selectedSublet.bedroomCount} bd`} · {selectedSublet.bathroomCount} ba
                     </span>
                   </div>
                   <Link
