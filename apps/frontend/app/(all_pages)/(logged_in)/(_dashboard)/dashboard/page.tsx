@@ -142,6 +142,8 @@ function MyListingsCard() {
                     <Image
                       src={s.featuredImage}
                       alt={s.title}
+                      width={8}
+                      height={8}
                       className="w-16 h-16 sm:w-20 sm:h-20 rounded-xl shrink-0 object-cover"
                     />
                   ) : (

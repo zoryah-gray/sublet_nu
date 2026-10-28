@@ -79,9 +79,9 @@ export default function ListingCard({ sublet, requests }: ListingCardProps) {
 
           {/* Quarter badges */}
           <div className="flex flex-wrap gap-1">
-            {sublet.quarters.map((q) => (
-              <span key={q} className={`text-[11px] px-1.5 py-0.5 rounded-full font-medium ${QUARTER_COLORS[q]}`}>
-                {q}
+            {sublet.terms.map((term) => (
+              <span key={term.id} className={`text-[11px] px-1.5 py-0.5 rounded-full font-medium ${QUARTER_COLORS[term.quarter]}`}>
+                {term.label}
               </span>
             ))}
           </div>

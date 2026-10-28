@@ -18,10 +18,11 @@ jobs:
     # the first step and destroys when the job ends — a throwaway Postgres that
     # exists only for this run. Same image and major version as the local
     # docker-compose `db` service, so CI and local can't disagree on Postgres
-    # behaviour.
+    # behaviour. The PostGIS image matches RDS (Postgres 17 + PostGIS 3.5);
+    # extensions are only made available here, the migrations enable them.
     services:
       postgres:
-        image: postgres:17-alpine
+        image: postgis/postgis:17-3.5-alpine
         # Not secrets (CLAUDE.md rule 5): this password guards a container that
         # only exists on a disposable runner, holds no real data, and is never
         # reachable from outside the runner.
@@ -35,9 +36,13 @@ jobs:
           - 5432:5432
         # Extra `docker run` flags. Actions waits until this healthcheck passes
         # before running the first step, so migrate:up never races a Postgres
-        # that's still booting.
+        # that's still booting. The check uses TCP (-h 127.0.0.1) because the
+        # temporary first-boot server only listens on the Unix socket. The
+        # tmpfs hides the image's init script so PostGIS starts available but
+        # NOT installed, as on RDS (see docker-compose.yml).
         options: >-
-          --health-cmd "pg_isready -U postgres -d sublet_nu_test"
+          --tmpfs /docker-entrypoint-initdb.d
+          --health-cmd "pg_isready -h 127.0.0.1 -U postgres -d sublet_nu_test"
           --health-interval 5s
           --health-timeout 5s
           --health-retries 10

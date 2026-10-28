@@ -24,7 +24,6 @@ export default async function EditListingPage({
     monthlyRent: sublet.monthlyRent,
     utilitiesIncluded: sublet.utilitiesIncluded ?? false,
     monthlyUtilitiesCost: sublet.monthlyUtilitiesCost ?? 0,
-    quartersAvailable: sublet.quarters,
     startDate: sublet.startDate,
     endDate: sublet.endDate,
     title: sublet.title,

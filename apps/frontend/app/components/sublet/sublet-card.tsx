@@ -82,12 +82,12 @@ export default function SubletCard({
           </div>
 
           <div className="flex flex-wrap gap-1 mt-2">
-            {sublet.quarters.map((quarter) => (
+            {sublet.terms.map((term) => (
               <span
-                key={quarter}
-                className={`text-xs px-2 py-0.5 rounded-full font-medium ${QUARTER_COLORS[quarter]}`}
+                key={term.id}
+                className={`text-xs px-2 py-0.5 rounded-full font-medium ${QUARTER_COLORS[term.quarter]}`}
               >
-                {quarter}
+                {term.label}
               </span>
             ))}
           </div>

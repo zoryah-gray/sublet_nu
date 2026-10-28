@@ -7,7 +7,9 @@ import SubletCard from '@/app/components/sublet/sublet-card';
 import BrowseFiltersClient from './browse-filters-client';
 import type { UrlFilters } from './browse-filters-client';
 import { MOCK_SUBLETS, getFilteredSublets } from '@/app/lib/mock-data';
-import { ITEMS_PER_PAGE, type Quarter, type SortOrder } from '@/app/lib/definitions';
+import { ITEMS_PER_PAGE, type SortOrder } from '@/app/lib/definitions';
+import type { Term, TermBadge } from '@sublet-nu/shared';
+import { getOfferedTerms, parseTermParam } from '@/app/lib/academic-terms';
 import { toPublicSublet } from '@/app/lib/util-address';
 
 // ─── Price histogram (server-side) ───────────────────────────────────────────
@@ -38,16 +40,17 @@ function computePriceHistogram(prices: number[]) {
 
 // ─── Param parsing ────────────────────────────────────────────────────────────
 
+/** The client-safe part of a term: no dates needed to render a chip. */
+function toBadge({ id, quarter, label }: Term): TermBadge {
+  return { id, quarter, label };
+}
+
 function parseFilters(
   p: Record<string, string | string[] | undefined>,
   dataMaxPrice: number,
+  selectedTerms: Term[],
 ): UrlFilters {
   const raw = (k: string) => (typeof p[k] === 'string' ? (p[k] as string) : undefined);
-
-  const quarters = raw('quarters')
-    ?.split(',')
-    .map((s) => s.trim())
-    .filter((s): s is Quarter => ['Fall', 'Winter', 'Spring', 'Summer'].includes(s)) ?? [];
 
   const rawMax   = raw('maxPrice');
   const maxPrice = rawMax != null
@@ -59,7 +62,7 @@ function parseFilters(
     minPrice:  Math.max(0, Number(raw('minPrice') ?? 0) || 0),
     maxPrice,
     sortOrder: (['asc', 'desc', 'new'].includes(raw('sort') ?? '') ? raw('sort') as SortOrder : 'new'),
-    quarters,
+    terms: selectedTerms.map(toBadge),
   };
 }
 
@@ -76,12 +79,15 @@ export default async function BrowsePage({
   const { dataMaxPrice, priceBuckets, bucketMax, bucketWidth } =
     computePriceHistogram(MOCK_SUBLETS.map((s) => s.monthlyRent));
 
-  const filters = parseFilters(params, dataMaxPrice);
+  // Terms offered today; an invalid or non-contiguous ?terms= means no term filter.
+  const offeredTerms = getOfferedTerms();
+  const selectedTerms = parseTermParam(typeof params.terms === 'string' ? params.terms : undefined, offeredTerms);
+  const filters = parseFilters(params, dataMaxPrice, selectedTerms);
   const page    = Math.max(1, Number(typeof params.page === 'string' ? params.page : '1') || 1);
 
   const filtered = getFilteredSublets({
     query: filters.query || undefined,
-    quarters: filters.quarters.length ? filters.quarters : undefined,
+    terms: selectedTerms.length ? selectedTerms : undefined,
     minPrice: filters.minPrice > 0 ? filters.minPrice : undefined,
     maxPrice: filters.maxPrice < dataMaxPrice ? filters.maxPrice : undefined,
     sortOrder: filters.sortOrder !== 'new' ? filters.sortOrder : undefined,
@@ -105,6 +111,7 @@ export default async function BrowsePage({
     <Suspense fallback={<div className="flex-1 animate-pulse bg-gray-50" />}>
       <BrowseFiltersClient
         currentFilters={filters}
+        offeredTerms={offeredTerms.map(toBadge)}
         totalCount={filtered.length}
         currentPage={page}
         dataMaxPrice={dataMaxPrice}

@@ -175,7 +175,6 @@ export interface ListingFormData {
   monthlyRent: number;
   utilitiesIncluded: boolean;
   monthlyUtilitiesCost: number;
-  quartersAvailable: Quarter[];
   startDate: string;
   endDate: string;
   title: string;

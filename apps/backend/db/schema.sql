@@ -1,6 +1,6 @@
 -- SubletNU — schema.sql (Not applied as a migration)
 -- Hand-maintained snapshot of the schema AFTER the latest migration in
--- db/migrations/ (currently 1791678012243_split-sublet-address). The migrations
+-- db/migrations/ (currently 1793155578946_add-public-rent-sort-index). The migrations
 -- are what actually build the database; keep this file in sync with them.
 -- Conventions per .claude/docs/sql.md: snake_case, plural tables, timestamptz UTC,
 --
@@ -32,7 +32,7 @@ CREATE TABLE users (
 -- ─────────────────────────────────────────────────────────────────────────────
 -- sublets
 -- ─────────────────────────────────────────────────────────────────────────────
-CREATE TYPE quarter AS ENUM ('Fall', 'Winter', 'Spring', 'Summer');
+CREATE EXTENSION IF NOT EXISTS postgis;   -- RDS: requires rds_superuser (see TODO.md)
 
 CREATE TABLE sublets (
   id                  uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -42,13 +42,11 @@ CREATE TABLE sublets (
   city                text NOT NULL,
   state               text NOT NULL CHECK (state ~ '^[A-Z]{2}$'),     -- 2-letter code, e.g. 'IL'
   zip_code            text NOT NULL CHECK (zip_code ~ '^[0-9]{5}$'),  -- text, not integer, so leading zeros survive
-  lat                 double precision NOT NULL,
-  lng                 double precision NOT NULL,
+  coordinates         geography(POINT, 4326) NOT NULL,  -- EXACT location: owner / confirmed renter only
   monthly_rent        numeric(10,2) NOT NULL,
   bedroom_count       smallint NOT NULL,         -- 0 = studio
   bathroom_count      numeric(3,1) NOT NULL,     -- 1.5 = one full + one half bath
-  start_date          date NOT NULL,             -- date, not timestamptz
-  end_date            date NOT NULL,
+  availability_date_range daterange NOT NULL,   -- built '[]' from start/end; stored canonically as [start, end + 1)
   description         text NOT NULL,
   image_hue           text,
   place_type          text CHECK (place_type IN ('entire', 'private')),
@@ -75,18 +73,93 @@ CREATE TABLE sublets (
   deleted_at          timestamptz,               -- set alongside display_status = 'deleted' when the OWNER deletes their account
 
   created_at          timestamptz NOT NULL DEFAULT now(),
-  updated_at          timestamptz NOT NULL DEFAULT now()
+  updated_at          timestamptz NOT NULL DEFAULT now(),
+
+  -- Public-safe location, derived by the database (rules must match
+  -- packages/shared/src/address.ts; the backend DB test asserts parity).
+  approx_coordinates  geography(POINT, 4326) GENERATED ALWAYS AS (
+                        ST_SetSRID(ST_MakePoint(
+                          floor(ST_X(coordinates::geometry) / 0.001) * 0.001 + 0.0005,
+                          floor(ST_Y(coordinates::geometry) / 0.001) * 0.001 + 0.0005
+                        ), 4326)::geography
+                      ) STORED,                  -- center of its ~111 m x 83 m grid cell
+  approximate_street  text GENERATED ALWAYS AS (
+                        CASE
+                          WHEN btrim(street_address) ~ '^[0-9]+[[:space:]]+.+$' THEN
+                            CASE
+                              WHEN floor(substring(btrim(street_address) FROM '^([0-9]+)')::numeric / 100) = 0
+                                THEN substring(btrim(street_address) FROM '^[0-9]+[[:space:]]+(.+)$')
+                              ELSE (floor(substring(btrim(street_address) FROM '^([0-9]+)')::numeric / 100) * 100)::text
+                                || ' block of ' || substring(btrim(street_address) FROM '^[0-9]+[[:space:]]+(.+)$')
+                            END
+                          ELSE btrim(street_address)
+                        END
+                      ) STORED,                  -- '1234 Hinman Ave' -> '1200 block of Hinman Ave'
+  title_search        tsvector GENERATED ALWAYS AS (to_tsvector('english', title)) STORED,   -- full-text search; query with the same 'english' config
+
+  CONSTRAINT sublets_availability_range_valid CHECK (
+    NOT isempty(availability_date_range)
+    AND NOT lower_inf(availability_date_range)
+    AND NOT upper_inf(availability_date_range)
+    AND upper(availability_date_range) - lower(availability_date_range) >= 2   -- end_date > start_date
+  ),
+  -- geography itself only guards type + SRID: out-of-range lat/lng are silently
+  -- WRAPPED (95° -> 85°), EMPTY and NaN pass. The service-area box catches all three.
+  CONSTRAINT sublets_coordinates_valid CHECK (
+    NOT ST_IsEmpty(coordinates::geometry)
+    AND ST_Y(coordinates::geometry) BETWEEN 41.6 AND 42.2      -- Chicagoland (Evanston + Chicago campus)
+    AND ST_X(coordinates::geometry) BETWEEN -88.0 AND -87.5
+  )
 );
 
 CREATE INDEX sublets_owner_id_idx        ON sublets(owner_id);
-CREATE INDEX sublets_display_status_idx  ON sublets(display_status) WHERE display_status = 'public';
+-- /browse indexes (docs/reports/index-optimization-explain-report.md)
+CREATE INDEX idx_sublets_place_rent   ON sublets (place_type, monthly_rent) WHERE display_status = 'public';   -- equality before range
+CREATE INDEX idx_sublets_date_range   ON sublets USING gist (availability_date_range) WHERE display_status = 'public';
+CREATE INDEX idx_sublets_coord        ON sublets USING gist (coordinates);         -- exact point (owner / renter / internal)
+CREATE INDEX idx_sublets_approx_coord ON sublets USING gist (approx_coordinates) WHERE display_status = 'public';   -- public radius / KNN
+CREATE INDEX idx_sublets_public_created ON sublets (created_at DESC) WHERE display_status = 'public';   -- newest-first browse; replaced sublets_display_status_idx
+CREATE INDEX idx_sublets_title_search ON sublets USING gin (title_search) WHERE display_status = 'public';   -- title search: filter on title_search @@ ..., not to_tsvector(title)
+CREATE INDEX idx_sublets_public_rent ON sublets (monthly_rent, id) WHERE display_status = 'public';   -- price sort asc / desc (backward scan); id = tiebreaker
+
+-- What any query on behalf of a non-owner, non-confirmed-renter may read.
+-- Excludes street_address, coordinates, confirmed_renter_id, deleted_at,
+-- is_draft, display_status. The server/actions layer decides who may use the
+-- base table instead; this view makes the public path unable to leak exact data.
+CREATE VIEW public_sublets AS
+  SELECT id, owner_id, title, approximate_street, city, state, zip_code,
+         approx_coordinates, monthly_rent, bedroom_count, bathroom_count,
+         availability_date_range, description, image_hue, place_type,
+         roommate_count, utilities_included, monthly_utilities_cost,
+         created_at, updated_at, title_search
+  FROM sublets
+  WHERE display_status = 'public';
 
 
-CREATE TABLE sublet_quarters (
-  sublet_id  uuid NOT NULL REFERENCES sublets(id) ON DELETE RESTRICT,
-  quarter    quarter NOT NULL,
-  PRIMARY KEY (sublet_id, quarter)
+-- Quarters are not stored per listing: they're derived from
+-- availability_date_range and these Registrar exam dates by
+-- packages/shared/src/terms.ts (rules v2, ADR 7): Fall starts Sep 1; 14-day
+-- minimum overlap; move-out day not counted; year-long leases keep a repeated
+-- quarter only at the end with more days; missing dates projected from the
+-- previous year + 1 year. Reference data, entered by a migration each year.
+CREATE TABLE academic_calendar (
+  academic_year    smallint PRIMARY KEY,   -- 2026 = the 2026–27 academic year
+  fall_exams_end   date,                   -- NULL = not published yet (projected)
+  winter_exams_end date,
+  spring_exams_end date,
+  -- Each exam date in its usual months; the windows also imply their order.
+  CONSTRAINT academic_calendar_windows CHECK (
+    fall_exams_end BETWEEN make_date(academic_year, 11, 1) AND make_date(academic_year, 12, 31)
+    AND winter_exams_end BETWEEN make_date(academic_year + 1, 2, 1) AND make_date(academic_year + 1, 4, 30)
+    AND spring_exams_end BETWEEN make_date(academic_year + 1, 5, 1) AND make_date(academic_year + 1, 7, 31)
+  )
 );
+
+-- Planner statistics for the /browse term filter (searchSublets): start and
+-- move-out bounds, and stay length (the year-long exclusion's prefilter).
+CREATE STATISTICS sublets_availability_lower ON (lower(availability_date_range)) FROM sublets;
+CREATE STATISTICS sublets_availability_upper ON (upper(availability_date_range)) FROM sublets;
+CREATE STATISTICS sublets_availability_nights ON ((upper(availability_date_range) - lower(availability_date_range))) FROM sublets;
 
 CREATE TABLE sublet_images (
   id          uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -166,6 +239,7 @@ CREATE UNIQUE INDEX match_requests_one_pending_per_sublet
 
 CREATE INDEX match_requests_owner_id_idx     ON match_requests(owner_id);
 CREATE INDEX match_requests_requester_id_idx ON match_requests(requester_id);
+CREATE INDEX idx_match_requests_sublet        ON match_requests(sublet_id);   -- owner inbox per listing + FK check on sublet delete
 
 -- ─────────────────────────────────────────────────────────────────────────────
 -- message_threads / messages / message_media / thread_read_state
@@ -215,19 +289,13 @@ CREATE TABLE thread_read_state (
 -- notifications
 -- ─────────────────────────────────────────────────────────────────────────────
 -- Written on: every match_requests status transition, every new message, and
--- an update to a sublet that changes monthly_rent, quarters, start_date, end_date, or
+-- an update to a sublet that changes monthly_rent, availability_date_range, or
 -- display_status (finalized field list — a typo fix in the description does
--- NOT trigger this). subject_id is intentionally NOT a foreign key — it points
--- into whichever table subject_type names, and Postgres cannot enforce
--- referential integrity across a polymorphic reference like this.
---
--- IMPLEMENTATION NOTE on the quarters trigger, now that quarters live in
--- sublet_quarters instead of an array column: "did quarters change" is no
--- longer a single-column comparison — it's a set diff between the rows that
--- existed in sublet_quarters before the update and the rows after. The
--- repository method doing the update needs to read the old set, apply the
--- change, read the new set, and compare, all inside the same transaction —
--- one more reason this fan-out belongs in application code, not a trigger.
+-- NOT trigger this). Quarters are derived from availability_date_range, so a
+-- quarter change is always a date change; no separate comparison is needed.
+-- subject_id is intentionally NOT a foreign key — it points into whichever
+-- table subject_type names, and Postgres cannot enforce referential integrity
+-- across a polymorphic reference like this.
 
 CREATE TABLE notifications (
   id           uuid PRIMARY KEY DEFAULT gen_random_uuid(),

@@ -59,7 +59,8 @@ names, university emails, home addresses, and private messages. It runs on a per
 AWS account with a target budget under $30/month.
 
 Detailed rules: see `.claude/docs/cost-guardrails.md`, `.claude/docs/security-review.md`,
-`.claude/docs/iac-review.md`, `.claude/docs/migrations.md`, `.claude/docs/sql.md`
+`.claude/docs/iac-review.md`, `.claude/docs/migrations.md`, `.claude/docs/sql.md`,
+`.claude/docs/data-validation.md` (which layer — form, server, DB — enforces each rule)
 
 ### Non-negotiable
 

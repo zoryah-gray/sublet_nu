@@ -28,6 +28,8 @@ import Pagination from '@/app/components/pagination';
 import { cn } from '@/lib/utils';
 import { ITEMS_PER_PAGE } from '@/app/lib/definitions';
 import type { PublicSublet, Quarter, SortOrder } from '@/app/lib/definitions';
+import type { TermBadge } from '@sublet-nu/shared';
+import { nextTermSelection } from '@/app/lib/academic-terms';
 import { useSaveData, useSSRSafeMediaQuery } from '@/app/lib/utils';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -37,15 +39,14 @@ type PlaceType = 'entire' | 'private';
 // Filters serialised in the URL (drive server-side filtering).
 export interface UrlFilters {
   query: string;
-  quarters: Quarter[];
+  /** Validated, contiguous term selection (parseTermParam), in calendar order. */
+  terms: TermBadge[];
   minPrice: number;
   maxPrice: number;
   sortOrder: SortOrder;
 }
 
 // ─── Constants ────────────────────────────────────────────────────────────────
-
-const ALL_QUARTERS: Quarter[] = ['Fall', 'Winter', 'Spring', 'Summer'];
 
 const QUARTER_COLORS: Record<Quarter, { on: string; off: string }> = {
   Fall:   { on: 'bg-amber-500 text-white border-amber-500',   off: 'border-amber-200 text-amber-700 hover:bg-amber-50' },
@@ -143,6 +144,7 @@ function PriceInput({ label, value, min, max, onChange }: { label: string; value
 
 function FilterSidebar({
   filters,
+  offeredTerms,
   dateRange,
   placeType,
   dataMaxPrice,
@@ -155,6 +157,7 @@ function FilterSidebar({
   onClose,
 }: {
   filters: UrlFilters;
+  offeredTerms: TermBadge[];
   dateRange: DateRange | undefined;
   placeType: PlaceType | undefined;
   dataMaxPrice: number;
@@ -191,17 +194,17 @@ function FilterSidebar({
       maxPrice: hi < dataMaxPrice ? String(hi) : undefined,
     });
 
-  const toggleSeason = (s: Quarter) => {
-    const next = filters.quarters.includes(s)
-      ? filters.quarters.filter((x) => x !== s)
-      : [...filters.quarters, s];
-    onUrlChange({ quarters: next.length ? next.join(',') : undefined });
+  const selectedTermIds = filters.terms.map((term) => term.id);
+
+  const toggleTerm = (id: string) => {
+    const next = nextTermSelection(selectedTermIds, id, offeredTerms.map((term) => term.id));
+    onUrlChange({ terms: next.length ? next.join(',') : undefined });
   };
 
   const reset = () => {
     setLocalMin(0);
     setLocalMax(dataMaxPrice);
-    onUrlChange({ q: undefined, quarters: undefined, minPrice: undefined, maxPrice: undefined, sort: undefined });
+    onUrlChange({ q: undefined, terms: undefined, minPrice: undefined, maxPrice: undefined, sort: undefined });
     onDateChange(undefined);
     onPlaceChange(undefined);
   };
@@ -275,16 +278,19 @@ function FilterSidebar({
         <div className="space-y-3">
           <h2 className="text-lg font-semibold text-gray-900">Duration</h2>
           <div className="flex items-center justify-between">
-            <h3 className="text-sm font-semibold text-gray-900">Quarter Available</h3>
-            {filters.quarters.length > 0 && (
-              <button onClick={() => onUrlChange({ quarters: undefined })} className="text-xs text-gray-400 hover:text-gray-600 transition-colors">Reset</button>
+            <h3 className="text-sm font-semibold text-gray-900">Quarters Available</h3>
+            {filters.terms.length > 0 && (
+              <button onClick={() => onUrlChange({ terms: undefined })} className="text-xs text-gray-400 hover:text-gray-600 transition-colors">Reset</button>
             )}
           </div>
+          {/* Term chips: the selection is always one consecutive run (nextTermSelection).
+              Matches listings with at least 14 days in every selected quarter — rules in
+              packages/shared/src/terms.ts. */}
           <div className="flex flex-wrap gap-2">
-            {ALL_QUARTERS.map((s) => {
-              const active = filters.quarters.includes(s);
+            {offeredTerms.map((term) => {
+              const active = selectedTermIds.includes(term.id);
               return (
-                <button key={s} onClick={() => toggleSeason(s)} className={cn('text-xs px-3 py-1.5 rounded-full border font-medium transition-colors', active ? QUARTER_COLORS[s].on : QUARTER_COLORS[s].off)}>{s}</button>
+                <button key={term.id} onClick={() => toggleTerm(term.id)} aria-pressed={active} className={cn('text-xs px-3 py-1.5 rounded-full border font-medium transition-colors', active ? QUARTER_COLORS[term.quarter].on : QUARTER_COLORS[term.quarter].off)}>{term.label}</button>
               );
             })}
           </div>
@@ -353,6 +359,8 @@ function FilterSidebar({
 interface BrowseFiltersClientProps {
   /** Current filter values derived from URL params by the server page. */
   currentFilters: UrlFilters;
+  /** Terms the quarter filter offers (current through next academic year), computed server-side. */
+  offeredTerms: TermBadge[];
   /** Total matching listings (computed server-side). */
   totalCount: number;
   /** Current page number (1-based, computed server-side). */
@@ -373,6 +381,7 @@ interface BrowseFiltersClientProps {
 
 export default function BrowseFiltersClient({
   currentFilters,
+  offeredTerms,
   totalCount,
   currentPage,
   dataMaxPrice,
@@ -446,8 +455,12 @@ export default function BrowseFiltersClient({
 
   if (currentFilters.sortOrder === 'asc')  chips.push({ key: 'sort', category: 'Sort', label: 'Price ↑', onRemove: () => push({ sort: undefined }) });
   if (currentFilters.sortOrder === 'desc') chips.push({ key: 'sort', category: 'Sort', label: 'Price ↓', onRemove: () => push({ sort: undefined }) });
-  for (const s of currentFilters.quarters)
-    chips.push({ key: `season-${s}`, category: 'Quarter', label: s, onRemove: () => push({ quarters: currentFilters.quarters.filter((x) => x !== s).join(',') || undefined }) });
+  // One chip for the whole run: removing a middle term alone would leave a gap.
+  if (currentFilters.terms.length > 0) {
+    const { terms } = currentFilters;
+    const label = terms.length === 1 ? terms[0].label : `${terms[0].label} – ${terms[terms.length - 1].label}`;
+    chips.push({ key: 'terms', category: 'Quarters', label, onRemove: () => push({ terms: undefined }) });
+  }
   if (currentFilters.minPrice > 0 || currentFilters.maxPrice < dataMaxPrice) {
     const lo = `$${currentFilters.minPrice.toLocaleString()}`;
     const hi = currentFilters.maxPrice >= dataMaxPrice ? `$${dataMaxPrice.toLocaleString()}+` : `$${currentFilters.maxPrice.toLocaleString()}`;
@@ -499,6 +512,7 @@ export default function BrowseFiltersClient({
       <aside className={cn('fixed inset-y-0 left-0 z-30 w-72 bg-white border-r border-gray-200 transition-transform duration-200', showFilters ? 'translate-x-0 shadow-xl' : '-translate-x-full')}>
         <FilterSidebar
           filters={currentFilters}
+          offeredTerms={offeredTerms}
           dateRange={dateRange}
           placeType={placeType}
           dataMaxPrice={dataMaxPrice}

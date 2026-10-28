@@ -13,7 +13,10 @@
     "migrate:up": "node-pg-migrate up -m db/migrations",
     "migrate:down": "node-pg-migrate down -m db/migrations",
     "migrate:down:all": "node-pg-migrate down 0 --timestamp -m db/migrations",
-    "migrate:create": "node-pg-migrate create -m db/migrations -j mjs"
+    "migrate:create": "node-pg-migrate create -m db/migrations -j mjs",
+    "db:psql": "docker compose exec db sh -c 'psql -U \"$POSTGRES_USER\" -d \"$POSTGRES_DB\"'",
+    "db:run": "sh db/run-sql.sh",
+    "db:seed": "sh db/run-sql.sh db/seeds/seed-browse.sql"
   },
   "devDependencies": {
     "@types/jest": "^30",
