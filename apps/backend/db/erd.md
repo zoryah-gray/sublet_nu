@@ -1,15 +1,24 @@
 # SubletNU — Entity Relationship Diagram
 
-Reflects `schema.sql` as of 10/10/26 (through migration
-`1791678012243_split-sublet-address`). The ERD lists keys and status columns
-only, so the Day 3 column renames don't appear in it. Built by
-`db/migrations/` locally and in CI; no deployed database yet.
+Reflects `schema.sql` as of 10/27/26 (through migration
+`1793155578946_add-public-rent-sort-index`). The ERD lists keys, status columns and the
+location columns whose visibility differs; other columns are in `schema.sql`.
+Built by `db/migrations/` locally and in CI; no deployed database yet.
+
+`public_sublets` (a view, not drawn) is `sublets` restricted to public rows and
+public-safe columns: `approximate_street` and `approx_coordinates` instead of
+`street_address` and `coordinates`. Public reads go through the view; exact
+location is for the owner and confirmed renter only.
+
+`academic_calendar` (not drawn; no foreign keys) holds Northwestern Registrar
+anchors. A listing's quarters are derived from its `availability_date_range`
+and these anchors (`packages/shared/src/terms.ts`); the former
+`sublet_quarters` table was retired in `1793123267633`.
 
 ```mermaid
 erDiagram
     users ||--o{ sublets : owns
     users |o--o{ sublets : "confirmed renter of (optional)"
-    sublets ||--o{ sublet_quarters : has
     sublets ||--o{ sublet_images : has
     sublets ||--o{ sublet_videos : has
     users ||--o{ favorites : favorites
@@ -38,10 +47,11 @@ erDiagram
         text display_status "public/restricted/private/deleted"
         boolean is_draft
         timestamptz deleted_at "soft delete"
-    }
-    sublet_quarters {
-        uuid sublet_id PK, FK
-        quarter quarter PK
+        geography coordinates "exact; owner + confirmed renter only"
+        geography approx_coordinates "generated; public"
+        text approximate_street "generated; public"
+        tsvector title_search "generated; GIN, public"
+        daterange availability_date_range
     }
     sublet_images {
         uuid id PK

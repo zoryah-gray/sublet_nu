@@ -1,6 +1,7 @@
 'use client';
 
 import { MagnifyingGlassIcon, XMarkIcon } from '@heroicons/react/24/outline';
+import { MAX_SEARCH_LENGTH } from '@sublet-nu/shared';
 import { cn } from '@/lib/utils';
 
 interface SearchBarProps {
@@ -30,6 +31,8 @@ export default function SearchBar({
         placeholder={placeholder}
         value={value}
         onChange={(e) => onChange(e.target.value)}
+        // Counts UTF-16 units, so slightly stricter than the server's code-point cap.
+        maxLength={MAX_SEARCH_LENGTH}
         className="flex-1 bg-transparent text-sm text-gray-800 placeholder-gray-400 outline-none cursor-text"
       />
       {value && (

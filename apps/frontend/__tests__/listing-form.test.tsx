@@ -21,16 +21,13 @@ async function fillStep2(user: ReturnType<typeof userEvent.setup>) {
   await user.clear(priceInput);
   await user.type(priceInput, '1200');
 
-  // Select a quarter
-  await user.click(screen.getByRole('button', { name: 'Fall' }));
-
   // Select utilities
   await user.click(screen.getByRole('checkbox', { name: /utilities included/i }))
 
   // Set dates
   const dateInputs = document.querySelectorAll('input[type="date"]');
-  await user.type(dateInputs[0] as HTMLElement, '2025-09-01');
-  await user.type(dateInputs[1] as HTMLElement, '2025-12-31');
+  await user.type(dateInputs[0] as HTMLElement, '2026-09-15');
+  await user.type(dateInputs[1] as HTMLElement, '2027-01-15');
 
   await user.type(screen.getByPlaceholderText(/sunny 1br/i), 'My Test Listing');
   await user.type(
@@ -83,18 +80,20 @@ describe('ListingForm', () => {
     expect(screen.getByRole('heading', { level: 2, name: 'Pricing, Availability & Details' })).toBeInTheDocument();
   });
 
-  it('step 2 validation: missing quarters shows error', async () => {
+  it('step 2 derives quarters from the dates instead of asking for them', async () => {
     const user = userEvent.setup();
     render(<ListingForm mode="new" />);
 
     await fillStep1(user);
     await user.click(screen.getByRole('button', { name: /continue/i }));
 
-    // On step 2 — type price but no quarters
-    await user.type(screen.getByPlaceholderText('1500'), '1200');
-    await user.click(screen.getByRole('button', { name: /continue/i }));
+    expect(screen.queryByRole('button', { name: 'Fall' })).not.toBeInTheDocument();
+    const dateInputs = document.querySelectorAll('input[type="date"]');
+    await user.type(dateInputs[0] as HTMLElement, '2026-09-15');
+    await user.type(dateInputs[1] as HTMLElement, '2027-01-15');
 
-    expect(screen.getByText('Select at least one quarter')).toBeInTheDocument();
+    expect(screen.getByText('Fall 2026')).toBeInTheDocument();
+    expect(screen.getByText('Winter 2027')).toBeInTheDocument();
   });
 
   it('step 2 validation: missing price shows error', async () => {
@@ -104,8 +103,7 @@ describe('ListingForm', () => {
     await fillStep1(user);
     await user.click(screen.getByRole('button', { name: /continue/i }));
 
-    // Select a quarter but no price
-    await user.click(screen.getByRole('button', { name: 'Fall' }));
+    // No price entered
     await user.click(screen.getByRole('button', { name: /continue/i }));
 
     expect(screen.getByText('Price must be greater than 0')).toBeInTheDocument();

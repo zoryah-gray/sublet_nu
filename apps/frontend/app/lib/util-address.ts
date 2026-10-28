@@ -7,25 +7,19 @@
 // visible only to its owner and its confirmed renter. Everyone else gets the
 // block-level address and an approximate map area.
 
+import { approximateCoords, formatApproximateStreet } from '@sublet-nu/shared';
 import type { PublicSublet, Sublet } from './definitions';
+
+// The masking rules themselves live in packages/shared so the database's
+// generated columns can be tested against the same code; re-exported here so
+// existing imports keep working.
+export { approximateCoords, APPROXIMATE_RADIUS_METERS, formatApproximateStreet, GRID_DEGREES } from '@sublet-nu/shared';
 
 type AddressParts = Pick<Sublet, 'streetAddress' | 'city' | 'state' | 'zipCode'>;
 
 /** Joins the split address columns into one display line, e.g. "1234 Hinman Ave, Evanston, IL 60202". */
 export function formatFullAddress(sublet: AddressParts): string {
   return `${sublet.streetAddress}, ${sublet.city}, ${sublet.state} ${sublet.zipCode}`;
-}
-
-/**
- * Rounds the house number down to its hundred block: "1234 Hinman Ave" -> "1200 block of Hinman Ave".
- * Numbers under 100, or a street with no leading number, fall back to the street name alone.
- */
-export function formatApproximateStreet(streetAddress: string): string {
-  const match = streetAddress.trim().match(/^(\d+)\s+(.+)$/);
-  if (!match) return streetAddress.trim();
-
-  const block = Math.floor(Number(match[1]) / 100) * 100;
-  return block === 0 ? match[2] : `${block} block of ${match[2]}`;
 }
 
 /** Block-level display line, e.g. "1200 block of Hinman Ave, Evanston, IL 60202". */
@@ -37,24 +31,6 @@ export function formatApproximateAddress(sublet: AddressParts): string {
 export function canSeeExactAddress(sublet: Pick<Sublet, 'ownerId' | 'confirmedRenterId'>, userId: string): boolean {
   return sublet.ownerId === userId || sublet.confirmedRenterId === userId;
 }
-
-// Grid size for approximate map locations: 0.001° is ~111m north-south and
-// ~83m east-west at Evanston's latitude (42°N).
-const GRID_DEGREES = 0.001;
-
-/**
- * Center of the 0.001° grid cell containing the point. Deterministic, so the
- * same listing always lands in the same place — random jitter would leak the
- * true point once enough page loads were averaged.
- */
-export function approximateCoords(coords: Sublet['coords']): Sublet['coords'] {
-  const snap = (value: number) => Math.floor(value / GRID_DEGREES) * GRID_DEGREES + GRID_DEGREES / 2;
-  return { lat: snap(coords.lat), lng: snap(coords.lng) };
-}
-
-// The true point is at most half a cell's diagonal (~69m) from the cell
-// center, so a 200m circle around approximateCoords() always contains it.
-export const APPROXIMATE_RADIUS_METERS = 200;
 
 /**
  * Strips what a non-owner must not receive. Call it in Server Components before

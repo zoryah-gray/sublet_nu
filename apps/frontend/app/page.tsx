@@ -57,12 +57,12 @@ function PreviewCard({ sublet }: { sublet: (typeof MOCK_SUBLETS)[0] }) {
           <span>{sublet.bathroomCount} bath</span>
         </div>
         <div className="flex flex-wrap gap-1 mt-1.5">
-          {sublet.quarters.slice(0, 2).map((s) => (
+          {sublet.terms.slice(0, 2).map((term) => (
             <span
-              key={s}
-              className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${QUARTER_COLORS[s]}`}
+              key={term.id}
+              className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${QUARTER_COLORS[term.quarter]}`}
             >
-              {s}
+              {term.label}
             </span>
           ))}
         </div>

@@ -5,8 +5,10 @@ import { useRouter } from 'next/navigation';
 import { ChevronLeftIcon, ChevronRightIcon, CheckIcon } from '@heroicons/react/24/outline';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
-import type { Quarter, ListingFormData } from '@/app/lib/definitions';
+import { termBadges } from '@sublet-nu/shared';
+import { QUARTER_COLORS, type ListingFormData } from '@/app/lib/definitions';
 import { formatFullAddress } from '@/app/lib/util-address';
+import { ACADEMIC_TERMS } from '@/app/lib/academic-terms';
 
 const EMPTY_FORM: ListingFormData = {
   placeType: 'entire',
@@ -20,7 +22,6 @@ const EMPTY_FORM: ListingFormData = {
   monthlyRent: 0,
   utilitiesIncluded: false,
   monthlyUtilitiesCost: 0,
-  quartersAvailable: [],
   startDate: '',
   endDate: '',
   title: '',
@@ -43,17 +44,6 @@ const BATHS_OPTIONS = [
   { label: '3', value: 3 },
 ];
 
-const ALL_QUARTERS: Quarter[] = ['Fall', 'Winter', 'Spring', 'Summer'];
-
-// Toggle-state colors for the quarter selector — distinct from QUARTER_COLORS in definitions
-// which is the read-only display version used on cards.
-const QUARTER_TOGGLE_COLORS: Record<Quarter, { on: string; off: string }> = {
-  Fall:   { on: 'bg-amber-100 text-amber-800 border-amber-300',  off: 'bg-white text-gray-600 border-gray-200 hover:bg-amber-50' },
-  Winter: { on: 'bg-sky-100 text-sky-800 border-sky-300',        off: 'bg-white text-gray-600 border-gray-200 hover:bg-sky-50' },
-  Spring: { on: 'bg-green-100 text-green-800 border-green-300',  off: 'bg-white text-gray-600 border-gray-200 hover:bg-green-50' },
-  Summer: { on: 'bg-orange-100 text-orange-800 border-orange-300', off: 'bg-white text-gray-600 border-gray-200 hover:bg-orange-50' },
-};
-
 const STEP_TITLES = ['The Basics', 'Pricing, Availability & Details', 'Review'];
 
 function validateStep1(data: ListingFormData): Record<string, string> {
@@ -69,7 +59,6 @@ function validateStep1(data: ListingFormData): Record<string, string> {
 function validateStep2(data: ListingFormData): Record<string, string> {
   const errors: Record<string, string> = {};
   if (data.monthlyRent <= 0) errors.monthlyRent = 'Price must be greater than 0';
-  if (data.quartersAvailable.length === 0) errors.quartersAvailable = 'Select at least one quarter';
   if (!data.startDate) errors.startDate = 'Start date is required';
   if (!data.endDate) errors.endDate = 'End date is required';
   if (data.startDate && data.endDate && data.startDate >= data.endDate)
@@ -175,12 +164,10 @@ export default function ListingForm({ mode, subletId: _subletId, initialData }: 
     setErrors((e) => ({ ...e, [key]: '' }));
   };
 
-  const toggleQuarter = (q: Quarter) => {
-    set(
-      'quartersAvailable',
-      data.quartersAvailable.includes(q) ? data.quartersAvailable.filter((x) => x !== q) : [...data.quartersAvailable, q],
-    );
-  };
+  // Quarters are derived from the dates (same rules as /browse), never entered.
+  const coveredTerms = data.startDate && data.endDate && data.startDate < data.endDate
+    ? termBadges(data.startDate, data.endDate, ACADEMIC_TERMS)
+    : [];
 
   const handleNext = () => {
     const errs = step === 0 ? validateStep1(data) : step === 1 ? validateStep2(data) : {};
@@ -405,27 +392,6 @@ export default function ListingForm({ mode, subletId: _subletId, initialData }: 
               )}
             </FieldGroup>
 
-            <FieldGroup label="Available quarters" error={errors.quartersAvailable}>
-              <div className="flex gap-2 flex-wrap">
-                {ALL_QUARTERS.map((q) => {
-                  const active = data.quartersAvailable.includes(q);
-                  return (
-                    <button
-                      key={q}
-                      type="button"
-                      onClick={() => toggleQuarter(q)}
-                      className={cn(
-                        'px-3 py-1.5 rounded-full border text-sm font-medium transition-colors',
-                        active ? QUARTER_TOGGLE_COLORS[q].on : QUARTER_TOGGLE_COLORS[q].off,
-                      )}
-                    >
-                      {q}
-                    </button>
-                  );
-                })}
-              </div>
-            </FieldGroup>
-
             <div className="grid grid-cols-2 gap-4">
               <FieldGroup label="Start date" error={errors.startDate}>
                 <input
@@ -444,6 +410,17 @@ export default function ListingForm({ mode, subletId: _subletId, initialData }: 
                 />
               </FieldGroup>
             </div>
+
+            {coveredTerms.length > 0 && (
+              <div className="flex flex-wrap items-center gap-2 -mt-2">
+                <span className="text-xs text-gray-500">Shows as</span>
+                {coveredTerms.map((term) => (
+                  <span key={term.id} className={cn('text-xs px-2 py-0.5 rounded-full font-medium', QUARTER_COLORS[term.quarter])}>
+                    {term.label}
+                  </span>
+                ))}
+              </div>
+            )}
 
             <FieldGroup label={`Title (${data.title.length}/80)`} error={errors.title}>
               <input
@@ -504,7 +481,7 @@ export default function ListingForm({ mode, subletId: _subletId, initialData }: 
                   label="Utilities"
                   value={data.utilitiesIncluded ? 'Included' : `~$${data.monthlyUtilitiesCost}/mo est.`}
                 />
-                <ReviewRow label="Quarters" value={data.quartersAvailable.join(', ') || '—'} />
+                <ReviewRow label="Quarters" value={coveredTerms.map((term) => term.label).join(', ') || '—'} />
                 <ReviewRow
                   label="Available"
                   value={

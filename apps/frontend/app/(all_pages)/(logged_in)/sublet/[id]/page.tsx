@@ -87,9 +87,9 @@ export default async function SubletDetailPage({
             <span>{sublet.startDate} — {sublet.endDate}</span>
           </div>
           <div className="flex flex-wrap gap-2">
-            {sublet.quarters.map((q) => (
-              <span key={q} className={`text-sm px-3 py-1 rounded-full border font-medium ${QUARTER_COLORS[q]}`}>
-                {q}
+            {sublet.terms.map((term) => (
+              <span key={term.id} className={`text-sm px-3 py-1 rounded-full border font-medium ${QUARTER_COLORS[term.quarter]}`}>
+                {term.label}
               </span>
             ))}
           </div>

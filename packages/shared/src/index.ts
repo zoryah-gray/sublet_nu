@@ -3,6 +3,8 @@
 // .claude/docs/sql.md. Frontend-only concerns (derived display labels,
 // Tailwind style constants) stay in apps/frontend/app/lib/definitions.ts.
 
+import type { TermBadge } from './terms';
+
 export type Quarter = 'Fall' | 'Winter' | 'Spring' | 'Summer';
 
 /** Stored sublet visibility. Frontend derives a separate display label from this — see deriveSubletStatus in apps/frontend/app/lib/utils.ts. */
@@ -23,7 +25,8 @@ export interface Sublet {
   /** 0 = studio. */
   bedroomCount: number;
   bathroomCount: number;
-  quarters: Quarter[];
+  /** Derived from startDate/endDate and the academic calendar (see ./terms) — never stored or entered. */
+  terms: TermBadge[];
   startDate: string;
   endDate: string;
   description: string;
@@ -45,3 +48,7 @@ export interface Sublet {
   /** Set when a match_request against this sublet reaches 'confirmed'. The one user, besides the owner, who can still see a 'restricted' sublet. */
   confirmedRenterId?: string;
 }
+
+export * from './address';
+export * from './search';
+export * from './terms';

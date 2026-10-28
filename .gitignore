@@ -43,6 +43,7 @@ packages/shared/dist/
 !.claude/docs/sql.md
 !.claude/docs/cost-baseline.md
 !.claude/docs/testing.md
+!.claude/docs/data-validation.md
 .claude/plans/*
 !.claude/plans/PLAN.md
 

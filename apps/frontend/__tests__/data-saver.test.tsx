@@ -36,7 +36,8 @@ function SaveDataProbe() {
 function renderBrowse() {
   render(
     <BrowseFiltersClient
-      currentFilters={{ query: '', quarters: [], minPrice: 0, maxPrice: 2000, sortOrder: 'new' }}
+      currentFilters={{ query: '', terms: [], minPrice: 0, maxPrice: 2000, sortOrder: 'new' }}
+      offeredTerms={[]}
       totalCount={0}
       currentPage={1}
       dataMaxPrice={2000}

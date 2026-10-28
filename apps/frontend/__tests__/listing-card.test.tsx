@@ -26,9 +26,12 @@ const MOCK_SUBLET: Sublet = {
   monthlyRent: 1200,
   bedroomCount: 0,
   bathroomCount: 1,
-  quarters: ['Fall', 'Winter'],
-  startDate: '2025-09-01',
-  endDate: '2025-12-31',
+  terms: [
+    { id: 'fall-2026', quarter: 'Fall', label: 'Fall 2026' },
+    { id: 'winter-2027', quarter: 'Winter', label: 'Winter 2027' },
+  ],
+  startDate: '2026-09-15',
+  endDate: '2027-01-15',
   description: 'Cozy studio apartment.',
   imageHue: '230',
   ownerId: 'user-jon',
@@ -63,6 +66,8 @@ describe('ListingCard', () => {
 
     expect(screen.getByText('Sunny Studio Near Campus')).toBeInTheDocument();
     expect(screen.getByText('Active')).toBeInTheDocument();
+    expect(screen.getByText('Fall 2026')).toBeInTheDocument();
+    expect(screen.getByText('Winter 2027')).toBeInTheDocument();
     expect(screen.getByText(/1 request/)).toBeInTheDocument();
   });
 

@@ -19,7 +19,6 @@ export type {
 } from '@/app/lib/definitions';
 
 import type {
-  Quarter,
   SortOrder,
   Sublet,
   MatchRequest,
@@ -29,11 +28,16 @@ import type {
   Message,
 } from '@/app/lib/definitions';
 import { formatApproximateStreet } from '@/app/lib/util-address';
+import { matchesTermSelection, termBadges, type Term } from '@sublet-nu/shared';
+import { ACADEMIC_TERMS } from '@/app/lib/academic-terms';
 
 // The currently logged-in user (replace with real auth session later)
 export const CURRENT_USER_ID = 'user-jon';
 
-export const MOCK_SUBLETS: Sublet[] = [
+// Dates were shifted forward one year on 10/27/26 so listings fall in
+// current/upcoming terms. Quarters aren't listed: they're derived from the
+// dates (terms below), the same way the database derives them.
+const MOCK_SUBLET_ROWS: Omit<Sublet, 'terms'>[] = [
   {
     id: '1',
     title: 'Sunny Studio Near Campus',
@@ -45,9 +49,8 @@ export const MOCK_SUBLETS: Sublet[] = [
     monthlyRent: 1200,
     bedroomCount: 0,
     bathroomCount: 1,
-    quarters: ['Fall', 'Winter'],
-    startDate: '2025-09-01',
-    endDate: '2025-12-31',
+    startDate: '2026-09-01',
+    endDate: '2026-12-31',
     description:
       'Cozy studio apartment just 5 minutes from Northwestern campus. Fully furnished with modern appliances, high-speed WiFi, and in-unit washer/dryer. Perfect for a student studying abroad or taking a quarter off.',
     imageHue: '230',
@@ -75,9 +78,8 @@ export const MOCK_SUBLETS: Sublet[] = [
     monthlyRent: 2100,
     bedroomCount: 2,
     bathroomCount: 1,
-    quarters: ['Spring', 'Summer'],
-    startDate: '2026-03-15',
-    endDate: '2026-08-31',
+    startDate: '2027-03-15',
+    endDate: '2027-08-31',
     description:
       'Spacious two-bedroom apartment with open floor plan, stainless steel appliances, and private deck. Close to the Purple Line and Whole Foods. Split between two for only $1,050/mo each.',
     imageHue: '250',
@@ -106,9 +108,8 @@ export const MOCK_SUBLETS: Sublet[] = [
     monthlyRent: 1650,
     bedroomCount: 1,
     bathroomCount: 1,
-    quarters: ['Fall'],
-    startDate: '2025-09-01',
-    endDate: '2025-11-30',
+    startDate: '2026-09-01',
+    endDate: '2026-11-30',
     description:
       'Charming one-bedroom in the heart of downtown Evanston. Walk to restaurants, shops, and the Davis Street Metra station. Hardwood floors, exposed brick, and tons of natural light.',
     imageHue: '210',
@@ -136,9 +137,8 @@ export const MOCK_SUBLETS: Sublet[] = [
     monthlyRent: 3200,
     bedroomCount: 3,
     bathroomCount: 2,
-    quarters: ['Summer'],
-    startDate: '2026-06-01',
-    endDate: '2026-08-31',
+    startDate: '2027-06-01',
+    endDate: '2027-08-31',
     description:
       'Beautiful house with private backyard patio. Perfect for a group of students. Updated kitchen, two full bathrooms, ample storage, and driveway parking for two cars.',
     imageHue: '270',
@@ -168,9 +168,8 @@ export const MOCK_SUBLETS: Sublet[] = [
     monthlyRent: 1450,
     bedroomCount: 0,
     bathroomCount: 1,
-    quarters: ['Spring', 'Summer'],
-    startDate: '2026-04-01',
-    endDate: '2026-08-15',
+    startDate: '2027-04-01',
+    endDate: '2027-08-15',
     description:
       'Beautiful studio with partial lake views and direct beach access. Walking distance to Northwestern campus and the lakefront trail. Includes a rooftop deck.',
     imageHue: '195',
@@ -197,9 +196,8 @@ export const MOCK_SUBLETS: Sublet[] = [
     monthlyRent: 1900,
     bedroomCount: 2,
     bathroomCount: 1,
-    quarters: ['Fall', 'Winter', 'Spring'],
-    startDate: '2025-09-01',
-    endDate: '2026-05-31',
+    startDate: '2026-09-01',
+    endDate: '2027-05-31',
     description:
       'Well-maintained two-bedroom fully furnished apartment. Utilities included, fast WiFi, and just a short walk to the Tech campus. Ideal for the full academic year.',
     imageHue: '245',
@@ -227,9 +225,8 @@ export const MOCK_SUBLETS: Sublet[] = [
     monthlyRent: 1500,
     bedroomCount: 1,
     bathroomCount: 1,
-    quarters: ['Winter', 'Spring'],
-    startDate: '2026-01-01',
-    endDate: '2026-05-31',
+    startDate: '2027-01-01',
+    endDate: '2027-05-31',
     description:
       'Sunny one-bedroom with dedicated parking spot in the back lot. Pet-friendly, in-unit laundry, updated bathroom with walk-in shower.',
     imageHue: '220',
@@ -257,9 +254,8 @@ export const MOCK_SUBLETS: Sublet[] = [
     monthlyRent: 1100,
     bedroomCount: 0,
     bathroomCount: 1,
-    quarters: ['Summer', 'Fall'],
-    startDate: '2026-06-01',
-    endDate: '2026-12-31',
+    startDate: '2027-06-01',
+    endDate: '2027-12-31',
     description:
       'Brand new renovations with stainless steel appliances, quartz countertops, and hardwood floors throughout. Building has a rooftop deck and fitness center.',
     imageHue: '260',
@@ -286,9 +282,8 @@ export const MOCK_SUBLETS: Sublet[] = [
     monthlyRent: 4000,
     bedroomCount: 4,
     bathroomCount: 2,
-    quarters: ['Summer'],
-    startDate: '2026-06-01',
-    endDate: '2026-08-31',
+    startDate: '2027-06-01',
+    endDate: '2027-08-31',
     description:
       'Large house perfect for groups of four. Two separate living rooms, fully stocked kitchen, backyard patio with grill. Only $1,000/person for summer.',
     imageHue: '200',
@@ -321,9 +316,8 @@ export const MOCK_SUBLETS: Sublet[] = [
     monthlyRent: 1350,
     bedroomCount: 1,
     bathroomCount: 1,
-    quarters: ['Fall', 'Winter'],
-    startDate: '2025-09-15',
-    endDate: '2026-01-15',
+    startDate: '2026-09-15',
+    endDate: '2027-01-15',
     description:
       'Peaceful one-bedroom in a quiet building. Close to Norris Center, the main library, and multiple dining options. Bike storage available.',
     imageHue: '235',
@@ -350,9 +344,8 @@ export const MOCK_SUBLETS: Sublet[] = [
     monthlyRent: 2400,
     bedroomCount: 2,
     bathroomCount: 2,
-    quarters: ['Spring'],
-    startDate: '2026-03-01',
-    endDate: '2026-05-31',
+    startDate: '2027-03-01',
+    endDate: '2027-05-31',
     description:
       'Open loft-style apartment with exposed brick, 12-foot ceilings, and gourmet kitchen with island. Walking distance to the Davis Street L stop.',
     imageHue: '215',
@@ -381,9 +374,8 @@ export const MOCK_SUBLETS: Sublet[] = [
     monthlyRent: 950,
     bedroomCount: 0,
     bathroomCount: 1,
-    quarters: ['Fall', 'Winter', 'Spring', 'Summer'],
-    startDate: '2025-09-01',
-    endDate: '2026-08-31',
+    startDate: '2026-09-01',
+    endDate: '2027-08-31',
     description:
       'Budget-friendly studio available year-round. Utilities included, bicycle storage, and coin-op laundry in building. Great for anyone who needs flexibility.',
     imageHue: '240',
@@ -409,9 +401,8 @@ export const MOCK_SUBLETS: Sublet[] = [
     monthlyRent: 1750,
     bedroomCount: 1,
     bathroomCount: 1,
-    quarters: ['Winter', 'Spring'],
-    startDate: '2026-01-01',
-    endDate: '2026-05-31',
+    startDate: '2027-01-01',
+    endDate: '2027-05-31',
     description:
       'Fully renovated one-bedroom with all utilities included. Modern finishes, in-unit laundry, and a private deck. Steps from the Purple Line and downtown Evanston.',
     imageHue: '200',
@@ -423,6 +414,11 @@ export const MOCK_SUBLETS: Sublet[] = [
     confirmedRenterId: 'user-kelly',
   },
 ];
+
+export const MOCK_SUBLETS: Sublet[] = MOCK_SUBLET_ROWS.map((sublet) => ({
+  ...sublet,
+  terms: termBadges(sublet.startDate, sublet.endDate, ACADEMIC_TERMS),
+}));
 
 // Derive featuredImage from the first gallery image for every sublet that has one.
 MOCK_SUBLETS.forEach((s) => {
@@ -615,14 +611,16 @@ export const MOCK_MESSAGES: Message[] = [
   { id: 'm11', threadId: 't4', fromMe: true,  body: 'Absolutely! How does Thursday at 4pm work for you?',                                            timestamp: 'Yesterday 11:30 AM' },
 ];
 
+/** Mock /browse query: the same filters searchSublets applies, run over MOCK_SUBLETS. */
 export function getFilteredSublets({
-  quarters,
+  terms,
   minPrice,
   maxPrice,
   sortOrder,
   query,
 }: {
-  quarters?: Quarter[];
+  /** A validated, contiguous selection (parseTermParam). */
+  terms?: Term[];
   minPrice?: number;
   maxPrice?: number;
   sortOrder?: SortOrder;
@@ -640,10 +638,8 @@ export function getFilteredSublets({
     );
   }
 
-  if (quarters && quarters.length > 0) {
-    results = results.filter((s) =>
-      s.quarters.some((quarter) => quarters.includes(quarter))
-    );
+  if (terms && terms.length > 0) {
+    results = results.filter((s) => matchesTermSelection(s.startDate, s.endDate, terms, ACADEMIC_TERMS));
   }
 
   if (minPrice !== undefined) {

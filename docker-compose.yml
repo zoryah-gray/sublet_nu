@@ -35,16 +35,36 @@ services:
 
 
   db:
-    image: postgres:17-alpine
+    # PostGIS project's image, built on official postgres:17 — same Postgres
+    # major + PostGIS minor (3.5) as RDS. Alpine, not the Debian tag: that one is
+    # stuck on EOL Debian 11 (Postgres 17.5 / PostGIS 3.5.2). Collation is
+    # en_US.utf8 (non-C), so the planner treats LIKE/ORDER BY like RDS; only the
+    # actual text sort order differs (musl sorts byte-wise). amd64-only: runs
+    # under Rosetta on Apple Silicon, so trust plan shapes/Buffers, not ms.
+    image: postgis/postgis:17-3.5-alpine
+    # Required on Apple Silicon: without it Docker refuses ("no matching
+    # manifest for linux/arm64") instead of emulating. No-op on amd64 hosts.
+    platform: linux/amd64
+    # Empty initdb dir hides the image's 10_postgis.sh, which would otherwise
+    # pre-install postgis (+ topology, tiger geocoder) into POSTGRES_DB. RDS
+    # starts with PostGIS available but not installed — the migrations must be
+    # what enables it, here exactly as there.
+    tmpfs:
+      - /docker-entrypoint-initdb.d
     env_file:
       - path: .env.local
         required: false
+    # Host port from POSTGRES_PORT (via --env-file .env.local), default 5432.
+    # The container side stays 5432, so the dev container's db:5432 URL is unaffected.
     ports:
-      - "127.0.0.1:5432:5432"
+      - "127.0.0.1:${POSTGRES_PORT:-5432}:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      # -h 127.0.0.1 (TCP): the temporary server that runs during first-boot
+      # init listens on the Unix socket only, so a socket check can report
+      # healthy before the real server is up.
+      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
       interval: 5s
       timeout: 5s
       retries: 10
