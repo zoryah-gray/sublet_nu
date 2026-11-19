@@ -91,3 +91,116 @@ jobs:
       # silently passing.
       - name: Run backend tests
         run: npm run test --workspace=apps/backend
+
+      # Python Lambda tests (Tier 1): domain gate (pure) + provisioning against
+      # the same migrated service-container DB. Tier 2 (test/integration) is
+      # opt-in via SUBLETNU_SANDBOX=1 and skips here.
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install Python test dependencies
+        run: pip install -r apps/backend/requirements-dev.txt
+
+      - name: Run Python Lambda tests
+        working-directory: apps/backend
+        run: python -m pytest -q
+
+  # Both run only on pushes to main (merged PRs), never on PR builds.
+  diff:
+    name: CDK diff
+    runs-on: ubuntu-latest
+    needs: migrate-and-test
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    permissions:
+      id-token: write
+      contents: read
+    defaults:
+      run:
+        working-directory: apps/backend
+    env:
+      ALERT_EMAIL: ${{ secrets.ALERT_EMAIL }}
+      ENVIRONMENT: dev
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      # Lambda asset bundling runs pip for the Lambda's Python version.
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install dependencies
+        working-directory: .
+        run: npm ci
+
+      - name: Build shared package
+        working-directory: .
+        run: npm run build --workspace=packages/shared
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@e3dd6a429d7300a6a4c196c26e071d42e0343502
+        with:
+          role-to-assume: arn:aws:iam::867344439709:role/github-oidc-role-policy
+          aws-region: us-east-2
+
+      - name: Show infrastructure diff
+        run: npx cdk diff --all
+
+  deploy:
+    name: Deploy to AWS
+    runs-on: ubuntu-latest
+    needs: diff
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    # Pauses until a required reviewer approves (Settings -> Environments).
+    environment: production
+    # One deploy at a time; a newer push queues instead of cancelling a
+    # CloudFormation update midway.
+    concurrency:
+      group: cdk-deploy
+      cancel-in-progress: false
+    permissions:
+      id-token: write
+      contents: read
+    defaults:
+      run:
+        working-directory: apps/backend
+    env:
+      ALERT_EMAIL: ${{ secrets.ALERT_EMAIL }}
+      ENVIRONMENT: dev
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install dependencies
+        working-directory: .
+        run: npm ci
+
+      - name: Build shared package
+        working-directory: .
+        run: npm run build --workspace=packages/shared
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@e3dd6a429d7300a6a4c196c26e071d42e0343502
+        with:
+          role-to-assume: arn:aws:iam::867344439709:role/github-oidc-role-policy
+          aws-region: us-east-2
+
+      # Approval already happened at the environment gate, so the CLI's own
+      # interactive prompt (which CI can't answer) is turned off.
+      - name: Deploy backend stacks
+        run: npx cdk deploy --all --require-approval never

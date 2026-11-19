@@ -44,7 +44,8 @@ export function toInitials(name: string): string {
 
 /** Returns true if the email belongs to a Northwestern domain. */
 export function isNorthwesternEmail(email: string): boolean {
-  return email.endsWith('@northwestern.edu') || email.endsWith('@u.northwestern.edu');
+  const domain = email.toLowerCase().split('@').pop() ?? '';
+  return domain === 'northwestern.edu' || domain.endsWith('.northwestern.edu');
 }
 
 // ─── Media file validation ────────────────────────────────────────────────────

@@ -13,9 +13,7 @@ export default function LoginLayout({ children }: { children: React.ReactNode })
       <Link href="/" className="mb-6 text-2xl font-bold text-violet-800 tracking-tight hover:text-violet-900 transition-colors">
         SubletNU
       </Link>
-      <div className="w-full max-w-md">
-        {children}
-      </div>
+      {children}
     </div>
   );
 }

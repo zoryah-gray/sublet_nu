@@ -1,0 +1,171 @@
+import { MagnifyingGlassIcon, MapPinIcon } from '@heroicons/react/24/outline';
+import { MOCK_SUBLETS } from '@/app/lib/mock-data';
+
+const QUARTER_COLORS: Record<string, string> = {
+  Fall: 'bg-amber-50 text-amber-700',
+  Winter: 'bg-sky-50 text-sky-700',
+  Spring: 'bg-green-50 text-green-700',
+  Summer: 'bg-orange-50 text-orange-700',
+};
+
+function PreviewCard({ sublet }: { sublet: (typeof MOCK_SUBLETS)[0] }) {
+  return (
+    <div className="rounded-xl border border-gray-200 bg-white overflow-hidden shadow-sm">
+      {sublet.featuredImage ? (
+        <img
+          src={sublet.featuredImage}
+          alt={sublet.title}
+          className="w-full h-28 object-cover"
+        />
+      ) : (
+        <div
+          className="w-full h-28 flex items-center justify-center"
+          style={{ backgroundColor: `hsl(${sublet.imageHue} 60% 92%)` }}
+        >
+          <div
+            className="w-10 h-10 rounded-xl flex items-center justify-center"
+            style={{ backgroundColor: `hsl(${sublet.imageHue} 55% 75%)` }}
+          >
+            <svg
+              className="w-5 h-5 text-white"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth={1.5}
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M2.25 12l8.954-8.955c.44-.439 1.152-.439 1.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75"
+              />
+            </svg>
+          </div>
+        </div>
+      )}
+      <div className="p-2.5">
+        <p className="font-semibold text-gray-900 text-xs leading-snug truncate">
+          {sublet.title}
+        </p>
+        <div className="flex items-center gap-0.5 mt-0.5 text-[11px] text-gray-400">
+          <MapPinIcon className="w-2.5 h-2.5 shrink-0" />
+          <span className="truncate">{sublet.city}</span>
+        </div>
+        <div className="flex items-center gap-1.5 mt-1.5 text-[11px] text-gray-500">
+          <span>{sublet.bedroomCount === 0 ? 'Studio' : `${sublet.bedroomCount} bed`}</span>
+          <span className="text-gray-200">·</span>
+          <span>{sublet.bathroomCount} bath</span>
+        </div>
+        <div className="flex flex-wrap gap-1 mt-1.5">
+          {sublet.terms.slice(0, 2).map((term) => (
+            <span
+              key={term.id}
+              className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${QUARTER_COLORS[term.quarter]}`}
+            >
+              {term.label}
+            </span>
+          ))}
+        </div>
+        <p className="mt-1.5 font-bold text-violet-800 text-xs">
+          ${sublet.monthlyRent.toLocaleString()}
+          <span className="text-[10px] font-normal text-gray-400">/mo</span>
+        </p>
+      </div>
+    </div>
+  );
+}
+
+/** Static mock of the /browse page (cards + map), shown on the home and login pages. */
+export default function AppPreview() {
+  const previewSublets = MOCK_SUBLETS.slice(0, 4);
+
+  return (
+    <div className="rounded-2xl border border-gray-200 bg-gray-50 overflow-hidden shadow-md">
+      <div className="flex items-center gap-2 px-4 py-3 border-b border-gray-200 bg-white">
+        <div className="flex gap-1.5">
+          <div className="w-3 h-3 rounded-full bg-red-400" />
+          <div className="w-3 h-3 rounded-full bg-yellow-400" />
+          <div className="w-3 h-3 rounded-full bg-green-400" />
+        </div>
+        <div className="flex-1 mx-4">
+          <div className="h-5 rounded-md bg-gray-100 text-xs text-gray-400 flex items-center px-3 max-w-xs mx-auto">
+            subletnu.com/browse
+          </div>
+        </div>
+      </div>
+
+      <div className="flex gap-0 h-85">
+        {/* Cards side */}
+        <div className="flex-1 p-4 overflow-hidden">
+          {/* Fake search bar */}
+          <div className="flex items-center gap-2 mb-3">
+            <div className="flex-1 flex items-center gap-2 bg-white border border-gray-200 rounded-lg px-3 h-9">
+              <MagnifyingGlassIcon className="w-3.5 h-3.5 text-gray-400 shrink-0" />
+              <span className="text-xs text-gray-400">Search Evanston sublets...</span>
+            </div>
+            <div className="flex gap-1.5 shrink-0">
+              {['Sort', 'Price', 'Season'].map((f) => (
+                <span
+                  key={f}
+                  className="text-[11px] px-2.5 py-1 rounded-md border border-gray-200 bg-white text-gray-600 whitespace-nowrap"
+                >
+                  {f} ▾
+                </span>
+              ))}
+            </div>
+          </div>
+          {/* Cards grid */}
+          <div className="grid grid-cols-2 gap-2.5">
+            {previewSublets.map((s) => (
+              <PreviewCard key={s.id} sublet={s} />
+            ))}
+          </div>
+          {/* Pagination dots */}
+          <div className="flex items-center justify-center gap-1.5 mt-3">
+            {[1, 2, 3].map((n) => (
+              <div
+                key={n}
+                className={`rounded-full transition-all ${n === 1 ? 'w-5 h-1.5 bg-violet-800' : 'w-1.5 h-1.5 bg-gray-300'}`}
+              />
+            ))}
+          </div>
+        </div>
+
+        {/* Map side */}
+        <div className="hidden sm:flex w-52 md:w-64 shrink-0 border-l border-gray-200 bg-slate-100 relative items-center justify-center overflow-hidden">
+          {/* Fake map grid */}
+          <div className="absolute inset-0 opacity-30">
+            {Array.from({ length: 8 }).map((_, row) => (
+              <div key={row} className="flex">
+                {Array.from({ length: 6 }).map((_, col) => (
+                  <div
+                    key={col}
+                    className="border border-slate-300"
+                    style={{ width: 48, height: 48 }}
+                  />
+                ))}
+              </div>
+            ))}
+          </div>
+          {/* Road lines */}
+          <div className="absolute inset-0 opacity-20">
+            <div className="absolute top-1/3 left-0 right-0 h-px bg-slate-400" />
+            <div className="absolute top-2/3 left-0 right-0 h-px bg-slate-400" />
+            <div className="absolute left-1/3 top-0 bottom-0 w-px bg-slate-400" />
+            <div className="absolute left-2/3 top-0 bottom-0 w-px bg-slate-400" />
+          </div>
+          {/* Pin + Popup */}
+          <div className="relative flex flex-col items-center z-10">
+            <div className="bg-white rounded-xl shadow-lg border border-gray-200 px-3 py-2 mb-2 text-center">
+              <p className="text-[11px] font-semibold text-gray-800">Evanston, IL</p>
+              <p className="text-[10px] text-violet-800 font-medium">12 listings nearby</p>
+            </div>
+            <div className="w-6 h-6 bg-violet-800 rounded-full border-2 border-white shadow-md flex items-center justify-center">
+              <div className="w-2 h-2 bg-white rounded-full" />
+            </div>
+            <div className="w-2 h-2 bg-violet-800/30 rounded-full mt-0.5 scale-x-150" />
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}

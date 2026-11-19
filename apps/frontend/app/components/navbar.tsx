@@ -192,14 +192,18 @@ export default function NavBar() {
                   </div>
                 </Link>
 
-                <button
-                  className="w-full flex items-center gap-3 px-2.5 py-2 rounded-md text-sm font-medium transition-colors hover:bg-gray-100 text-gray-600 hover:text-gray-900"
-                  title="Sign out"
-                  aria-label="Sign out"
-                >
-                  <ArrowRightStartOnRectangleIcon className="w-5 h-5 shrink-0" />
-                  <span className="flex-1 text-left">Sign Out</span>
-                </button>
+                {/* POST, not a link: signing out changes state, so it must not be prefetchable or triggerable by a GET. */}
+                <form method="post" action="/api/auth/logout">
+                  <button
+                    type="submit"
+                    className="w-full flex items-center gap-3 px-2.5 py-2 rounded-md text-sm font-medium transition-colors hover:bg-gray-100 text-gray-600 hover:text-gray-900"
+                    title="Sign out"
+                    aria-label="Sign out"
+                  >
+                    <ArrowRightStartOnRectangleIcon className="w-5 h-5 shrink-0" />
+                    <span className="flex-1 text-left">Sign Out</span>
+                  </button>
+                </form>
               </div>
             </PopoverContent>
           </Popover>

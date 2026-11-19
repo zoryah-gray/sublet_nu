@@ -22,7 +22,7 @@
     "@types/jest": "^30",
     "@types/node": "^24.10.1",
     "@types/pg": "^8.23.1",
-    "aws-cdk": "2.1118.0",
+    "aws-cdk": "^2.1147.0",
     "jest": "^30",
     "node-pg-migrate": "^9.0.0",
     "pg": "^8.23.1",

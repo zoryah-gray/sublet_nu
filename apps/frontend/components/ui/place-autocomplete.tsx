@@ -178,14 +178,11 @@ function usePlaceSearch({
     const [hasSearched, setHasSearched] = React.useState(false)
 
     const debouncedQuery = useDebounce(query, debounceMs)
+    // A blank query shows nothing; derived at render instead of reset in the Effect.
+    const isBlank = !debouncedQuery.trim()
 
     React.useEffect(() => {
-        if (!debouncedQuery.trim()) {
-            setResults([])
-            setIsLoading(false)
-            setHasSearched(false)
-            return
-        }
+        if (isBlank) return
 
         const abortController = new AbortController()
 
@@ -230,6 +227,7 @@ function usePlaceSearch({
         return () => abortController.abort()
     }, [
         debouncedQuery,
+        isBlank,
         props.lang,
         props.limit,
         props.bbox,
@@ -239,7 +237,9 @@ function usePlaceSearch({
         props.locationBiasScale,
     ])
 
-    return { results, isLoading, error, hasSearched }
+    return isBlank
+        ? { results: [], isLoading: false, error, hasSearched: false }
+        : { results, isLoading, error, hasSearched }
 }
 
 function PlaceAutocomplete({

@@ -1,0 +1,4 @@
+# Local/CI test dependencies for the Python Lambdas (not shipped to Lambda).
+pytest~=8.3
+psycopg2-binary~=2.9.10
+boto3~=1.35

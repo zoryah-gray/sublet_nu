@@ -24,7 +24,7 @@ import {
   Cog6ToothIcon as CogSolid,
 } from '@heroicons/react/24/solid';
 import { Separator } from '@/components/ui/separator';
-import { MOCK_USER_PROFILES, CURRENT_USER_ID } from '@/app/lib/mock-data';
+import type { SessionUser } from '@/app/lib/dal';
 import { isActive } from '@/app/lib/utils';
 
 const NAV_LINKS = [
@@ -36,11 +36,10 @@ const NAV_LINKS = [
   { name: 'Settings', href: '/settings', Outline: Cog6ToothIcon, Solid: CogSolid },
 ];
 
-export default function DashboardSidebar() {
+/** Dashboard navigation plus the signed-in user's footer. Input: user from getSessionUser(), passed by the server layout. */
+export default function DashboardSidebar({ user }: { user: SessionUser | null }) {
   const pathname = usePathname();
   const [collapsed, setCollapsed] = useState(false);
-  // TODO: replace with getUser() from next/auth when auth is wired up
-  const currentUser = MOCK_USER_PROFILES.find((p) => p.id === CURRENT_USER_ID);
 
   useLayoutEffect(() => {
     const mql = window.matchMedia('(max-width: 1023px)');
@@ -105,22 +104,25 @@ export default function DashboardSidebar() {
       {/* User footer */}
       <div className={cn('px-2 py-3 flex items-center gap-2.5', collapsed ? 'justify-center' : '')}>
         <div className="w-8 h-8 rounded-full bg-violet-100 flex items-center justify-center shrink-0">
-          <span className="text-xs font-bold text-violet-800">{currentUser?.avatarInitials ?? 'JD'}</span>
+          <span className="text-xs font-bold text-violet-800">{user?.avatarInitials ?? ''}</span>
         </div>
         {!collapsed && (
           <div className="flex-1 min-w-0">
-            <p className="text-xs font-semibold text-gray-900 truncate">{currentUser?.name ?? 'Jon Doe'}</p>
-            <p className="text-[11px] text-gray-400 truncate">{currentUser?.email ?? 'jonodono@gmail.com'}</p>
+            <p className="text-xs font-semibold text-gray-900 truncate">{user?.fullName ?? user?.email ?? ''}</p>
+            <p className="text-[11px] text-gray-400 truncate">{user?.email ?? ''}</p>
           </div>
         )}
         {!collapsed && (
-          <button
-            className="p-1 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors shrink-0"
-            aria-label="Sign out"
-            title="Sign out"
-          >
-            <ArrowRightStartOnRectangleIcon className="w-4 h-4" />
-          </button>
+          <form method="post" action="/api/auth/logout" className="shrink-0">
+            <button
+              type="submit"
+              className="p-1 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors"
+              aria-label="Sign out"
+              title="Sign out"
+            >
+              <ArrowRightStartOnRectangleIcon className="w-4 h-4" />
+            </button>
+          </form>
         )}
       </div>
     </aside>

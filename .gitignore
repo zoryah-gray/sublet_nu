@@ -50,6 +50,8 @@ packages/shared/dist/
 # misc
 .DS_Store
 *.pem
+# Public Amazon RDS root CAs (not a secret); the Lambda layer needs it for sslmode=verify-full.
+!apps/backend/functions/layer/python/rds-global-bundle.pem
 *.log
 Dockerfile.explained
 TODO.md
@@ -70,3 +72,8 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Playwright (apps/frontend/e2e)
+apps/frontend/e2e/.auth/
+apps/frontend/test-results/
+apps/frontend/playwright-report/

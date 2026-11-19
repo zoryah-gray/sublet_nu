@@ -50,8 +50,8 @@ type SubletOverrides = {
 /** Inserts the minimum user + sublet rows the FKs require, returning their ids. */
 async function insertOwnerAndSublet(overrides: SubletOverrides = {}) {
   const owner = await client.query<{ id: string }>(
-    `INSERT INTO users (name, email) VALUES ($1, $2) RETURNING id`,
-    ['Test Owner', `test.owner.${Math.random().toString(36).slice(2)}@u.northwestern.edu`],
+    `INSERT INTO users (cognito_sub, display_name, email) VALUES (gen_random_uuid(), $1, $2) RETURNING id`,
+    [`test.owner.${Math.random().toString(36).slice(2)}`, `test.owner.${Math.random().toString(36).slice(2)}@u.northwestern.edu`],
   );
   const ownerId = owner.rows[0].id;
 

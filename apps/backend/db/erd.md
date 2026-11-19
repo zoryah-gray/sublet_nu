@@ -36,7 +36,11 @@ erDiagram
 
     users {
         uuid id PK
+        uuid cognito_sub UK
+        text display_name UK "editable handle"
+        text full_name "nullable"
         text email UK
+        text contact_method "in_app/email"
         boolean is_public
         timestamptz deleted_at "soft delete"
     }
