@@ -56,8 +56,8 @@ type ListingOverrides = {
 /** Inserts an owner plus one sublet with the given title (public by default), returning the sublet id. */
 async function insertListing(title: string, overrides: ListingOverrides = {}): Promise<string> {
   const owner = await client.query<{ id: string }>(
-    `INSERT INTO users (name, email) VALUES ($1, $2) RETURNING id`,
-    ['Search Test Owner', `search.owner.${Math.random().toString(36).slice(2)}@u.northwestern.edu`],
+    `INSERT INTO users (cognito_sub, display_name, email) VALUES (gen_random_uuid(), $1, $2) RETURNING id`,
+    [`search.owner.${Math.random().toString(36).slice(2)}`, `search.owner.${Math.random().toString(36).slice(2)}@u.northwestern.edu`],
   );
   const sublet = await client.query<{ id: string }>(
     `INSERT INTO sublets (

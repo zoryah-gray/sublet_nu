@@ -18,6 +18,9 @@
 - A listing's exact address must not be returned by the browse/search endpoint —
   only after a match is confirmed. Verify the API response shape, not just the UI.
 - Message threads: every read scoped to `participant_id = :sessionUserId`.
-- The `@u.northwestern.edu` restriction is enforced server-side at token
+- The Northwestern domain restriction (`northwestern.edu` and any subdomain) is enforced server-side at token
   validation. Client-side checking is a UX nicety, not a control.
 - Presigned upload URLs: scoped to one key prefix, short expiry, size-limited.
+- JWTs: `iss` pinned to the user pool; access tokens pin `client_id` + `token_use`, ID tokens pin `aud`; RS256 only; `exp` required (`apps/frontend/app/lib/auth/tokens.ts`).
+- `proxy.ts` matcher: explicit static allowlist, never extension-based. Server Actions call `requireSession()` themselves.
+- Run `npm audit --omit=dev` before merging; any `next` advisory mentioning Proxy/Middleware bypass is a blocker.

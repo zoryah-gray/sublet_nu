@@ -1,6 +1,6 @@
 -- SubletNU — schema.sql (Not applied as a migration)
 -- Hand-maintained snapshot of the schema AFTER the latest migration in
--- db/migrations/ (currently 1793155578946_add-public-rent-sort-index). The migrations
+-- db/migrations/ (currently 1793519637032_users-auth-identity). The migrations
 -- are what actually build the database; keep this file in sync with them.
 -- Conventions per .claude/docs/sql.md: snake_case, plural tables, timestamptz UTC,
 --
@@ -21,8 +21,11 @@
 -- ─────────────────────────────────────────────────────────────────────────────
 CREATE TABLE users (
   id            uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  name          text NOT NULL,
-  email         text NOT NULL UNIQUE,           -- @u.northwestern.edu; auth wiring not implemented yet
+  cognito_sub   uuid NOT NULL UNIQUE,           -- Cognito user `sub`; the identity key. Written once by post_confirmation.py
+  display_name  text NOT NULL UNIQUE,           -- user-editable handle (frontend UserProfile.name), NOT a human name. Seeded from the email local part, no DEFAULT
+  full_name     text,                           -- human name from Google's `name` claim; NULL when absent. avatarInitials is derived from it at read time, never stored
+  email         text NOT NULL UNIQUE,           -- @northwestern.edu (prod) — enforced by the PreSignUp Lambda, not here
+  contact_method text NOT NULL DEFAULT 'in_app' CHECK (contact_method IN ('in_app', 'email')),
   bio           text NOT NULL DEFAULT '',
   is_public     boolean NOT NULL DEFAULT false,
   created_at    timestamptz NOT NULL DEFAULT now(),  -- frontend's `joinedAt` — renamed at the repository/DTO layer, not here

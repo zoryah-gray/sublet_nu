@@ -52,3 +52,4 @@ export interface Sublet {
 export * from './address';
 export * from './search';
 export * from './terms';
+export * from './auth';

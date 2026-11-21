@@ -1,0 +1,12 @@
+{
+  "name": "subletnu-migration-functions",
+  "private": true,
+  "description": "Dependencies bundled into MigrationRunnerFn and the one-time BootstrapMigratorRoleFn",
+  "type": "module",
+  "dependencies": {
+    "@aws-sdk/client-secrets-manager": "^3.0.0",
+    "@aws-sdk/rds-signer": "^3.0.0",
+    "node-pg-migrate": "9.0.0",
+    "pg": "^8.23.1"
+  }
+}

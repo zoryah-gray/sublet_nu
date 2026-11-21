@@ -416,10 +416,22 @@ export default function BrowseFiltersClient({
   const [localQuery, setLocalQuery] = useState(currentFilters.query);
 
   // Keep localQuery in sync when the server sends new currentFilters (e.g. on
-  // browser back/forward navigation).
-  useEffect(() => {
+  // browser back/forward navigation). Adjusted during render, not in an Effect
+  // (.claude/docs/react-state.md), so the stale query never paints.
+  const [prevQuery, setPrevQuery] = useState(currentFilters.query);
+  if (currentFilters.query !== prevQuery) {
+    setPrevQuery(currentFilters.query);
     setLocalQuery(currentFilters.query);
-  }, [currentFilters.query]);
+  }
+
+  const push = useCallback(
+    (updates: Partial<Record<string, string | undefined>>) => {
+      startTransition(() => {
+        router.push(buildUrl(pathname, params, updates));
+      });
+    },
+    [router, pathname, params],
+  );
 
   // Debounce: push query to URL 350 ms after the user stops typing.
   useEffect(() => {
@@ -432,15 +444,6 @@ export default function BrowseFiltersClient({
   // Only re-run when localQuery changes, NOT when currentFilters.query changes.
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [localQuery]);
-
-  const push = useCallback(
-    (updates: Partial<Record<string, string | undefined>>) => {
-      startTransition(() => {
-        router.push(buildUrl(pathname, params, updates));
-      });
-    },
-    [router, pathname, params],
-  );
 
   const clearAll = () => {
     setLocalQuery('');

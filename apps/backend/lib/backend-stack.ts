@@ -6,6 +6,11 @@ import * as budgets from 'aws-cdk-lib/aws-budgets';
 import { Construct } from 'constructs';
 // import * as sqs from 'aws-cdk-lib/aws-sqs';
 
+/**
+ * This stack is for the backend resources of the SubletNU project. It includes AWS Budgets and SNS topics for billing alerts, 
+ * The stack is designed to be deployed in 
+ * the AWS account associated with the SubletNU project.
+ */
 export class BackendStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
     super(scope, id, props);
@@ -100,11 +105,11 @@ export class BackendStack extends cdk.Stack {
         costFilters: projectCostFilter,
       },
       notificationsWithSubscribers: [notification('FORECASTED', 100)],
-    });
+    });    
 
-    // example resource
-    // const queue = new sqs.Queue(this, 'BackendQueue', {
-    //   visibilityTimeout: cdk.Duration.seconds(300)
-    // });
+    
+
+   
+
   }
 }

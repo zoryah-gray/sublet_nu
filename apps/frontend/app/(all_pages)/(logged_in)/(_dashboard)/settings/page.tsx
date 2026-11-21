@@ -3,7 +3,6 @@
 import { useState } from 'react';
 import { LockClosedIcon, CheckBadgeIcon } from '@heroicons/react/24/outline';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
 import { Spinner } from '@/components/ui/spinner';
 import { Separator } from '@/components/ui/separator';
@@ -13,6 +12,8 @@ import EditProfileForm from '@/app/components/ui/edit-profile-form';
 import VisibilityToggle from '@/app/components/ui/visibility-toggle';
 import { MOCK_USER_PROFILES, CURRENT_USER_ID } from '@/app/lib/mock-data';
 import { isNorthwesternEmail } from '@/app/lib/utils';
+import { updateContactMethod } from '@/app/actions/settings';
+import type { ContactMethod } from '@sublet-nu/shared';
 
 // ─── Shared section card ──────────────────────────────────────────────────────
 
@@ -46,20 +47,6 @@ const NOTIF_PREFS = [
 
 type NotifKey = typeof NOTIF_PREFS[number]['key'];
 
-// ─── Password validation ──────────────────────────────────────────────────────
-
-type PwErrors = { current?: string; next?: string; confirm?: string };
-
-function validatePassword(current: string, next: string, confirm: string): PwErrors {
-  const errs: PwErrors = {};
-  if (!current) errs.current = 'Current password is required.';
-  if (!next) errs.next = 'New password is required.';
-  else if (next.length < 8) errs.next = 'Password must be at least 8 characters.';
-  if (!confirm) errs.confirm = 'Please confirm your new password.';
-  else if (next && confirm && next !== confirm) errs.confirm = "Passwords don't match.";
-  return errs;
-}
-
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function SettingsPage() {
@@ -83,40 +70,24 @@ export default function SettingsPage() {
     setSavedNotifs(true);
   };
 
-  // Password
-  const [currentPw, setCurrentPw] = useState('');
-  const [newPw, setNewPw] = useState('');
-  const [confirmPw, setConfirmPw] = useState('');
-  const [pwErrors, setPwErrors] = useState<PwErrors>({});
-  const [savingPw, setSavingPw] = useState(false);
-  const [savedPw, setSavedPw] = useState(false);
-
-  const savePassword = async () => {
-    const errs = validatePassword(currentPw, newPw, confirmPw);
-    if (Object.keys(errs).length > 0) { setPwErrors(errs); return; }
-    setPwErrors({});
-    setSavingPw(true);
-    setSavedPw(false);
-    // TODO: replace with NextAuth credentials update when auth is wired up
-    await new Promise((r) => setTimeout(r, 500));
-    setSavingPw(false);
-    setSavedPw(true);
-    setCurrentPw('');
-    setNewPw('');
-    setConfirmPw('');
-  };
-
   // Listing defaults
-  const [contactPref, setContactPref] = useState<'messages' | 'email'>('messages');
+  const [contactPref, setContactPref] = useState<ContactMethod>('in_app');
   const [savingContact, setSavingContact] = useState(false);
   const [savedContact, setSavedContact] = useState(false);
+  const [contactError, setContactError] = useState(false);
 
   const saveContact = async () => {
     setSavingContact(true);
     setSavedContact(false);
-    await new Promise((r) => setTimeout(r, 400));
-    setSavingContact(false);
-    setSavedContact(true);
+    setContactError(false);
+    try {
+      await updateContactMethod(contactPref);
+      setSavedContact(true);
+    } catch {
+      setContactError(true);
+    } finally {
+      setSavingContact(false);
+    }
   };
 
   // Danger zone
@@ -196,51 +167,8 @@ export default function SettingsPage() {
                   Northwestern verified
                 </span>
               )}
-              <Button variant="outline" size="sm" disabled title="Coming soon">
-                Change email
-              </Button>
             </div>
-          </div>
-
-          <Separator />
-
-          {/* Password change */}
-          <div className="space-y-3">
-            <p className="text-sm font-medium text-gray-700">Change password</p>
-            <div className="space-y-2">
-              {(
-                [
-                  { id: 'cur', val: currentPw, set: setCurrentPw, err: pwErrors.current, key: 'current' as const, label: 'Current password' },
-                  { id: 'new', val: newPw, set: setNewPw, err: pwErrors.next, key: 'next' as const, label: 'New password' },
-                  { id: 'conf', val: confirmPw, set: setConfirmPw, err: pwErrors.confirm, key: 'confirm' as const, label: 'Confirm new password' },
-                ]
-              ).map(({ id, val, set, err, key, label }) => (
-                <div key={id} className="space-y-1">
-                  <Input
-                    type="password"
-                    placeholder={label}
-                    value={val}
-                    onChange={(e) => { set(e.target.value); setSavedPw(false); setPwErrors((p) => ({ ...p, [key]: undefined })); }}
-                    className={err ? 'border-red-400' : ''}
-                  />
-                  {err && <p className="text-xs text-red-600">{err}</p>}
-                </div>
-              ))}
-            </div>
-            <div className="flex items-center gap-3 flex-wrap">
-              <Button size="sm" disabled={savingPw} onClick={savePassword}>
-                {savingPw && <Spinner className="size-3.5 mr-1.5" />}
-                {savingPw ? 'Updating…' : 'Update password'}
-              </Button>
-              {savedPw && (
-                <NotificationBanner
-                  type="success"
-                  message="Password updated."
-                  onDismiss={() => setSavedPw(false)}
-                  className="flex-1"
-                />
-              )}
-            </div>
+            <p className="text-xs text-gray-400">Your email comes from your Google account and can't be changed here.</p>
           </div>
         </div>
       </SectionCard>
@@ -252,7 +180,7 @@ export default function SettingsPage() {
           <div className="space-y-2">
             {(
               [
-                { value: 'messages', label: 'Messages only', sub: 'Renters contact you via SubletNU messages' },
+                { value: 'in_app', label: 'Messages only', sub: 'Renters contact you via SubletNU messages' },
                 { value: 'email', label: 'Email only', sub: 'Your email address is shown on your listings' },
               ] as const
             ).map(({ value, label, sub }) => (
@@ -289,6 +217,14 @@ export default function SettingsPage() {
                 type="success"
                 message="Listing defaults saved."
                 onDismiss={() => setSavedContact(false)}
+                className="flex-1"
+              />
+            )}
+            {contactError && (
+              <NotificationBanner
+                type="error"
+                message="Couldn't save. Please sign in again and retry."
+                onDismiss={() => setContactError(false)}
                 className="flex-1"
               />
             )}

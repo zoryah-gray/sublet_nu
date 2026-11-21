@@ -49,8 +49,8 @@ SELECT setseed(0.42);
 -- ─── Owners (~1 per 12 listings; also used as confirmed renters) ────────────
 SELECT greatest(:rows / 12, 50) AS owners \gset
 
-INSERT INTO users (name, email, bio, is_public)
-SELECT 'Seed Owner ' || n, 'seed-owner-' || n || '@seed.subletnu.invalid', '', n % 3 <> 0
+INSERT INTO users (cognito_sub, display_name, email, bio, is_public)
+SELECT gen_random_uuid(), 'seed-owner-' || n, 'seed-owner-' || n || '@seed.subletnu.invalid', '', n % 3 <> 0
 FROM generate_series(1, :owners) AS n;
 
 CREATE TEMP TABLE seed_owners ON COMMIT DROP AS
