@@ -3,6 +3,8 @@ import * as ec2 from 'aws-cdk-lib/aws-ec2';
 import * as rds from 'aws-cdk-lib/aws-rds';
 import { Construct } from 'constructs';
 
+export const DB_NAME = 'subletnu';
+
 /**
  * Network + Postgres for SubletNU: an isolated-subnet VPC (no NAT, no internet
  * route) and a single-AZ db.t4g.micro instance. Lambdas connect directly to the
@@ -43,7 +45,7 @@ export class DataStack extends cdk.Stack {
       vpc: this.vpc,
       vpcSubnets: { subnetType: ec2.SubnetType.PRIVATE_ISOLATED },
       instanceType: ec2.InstanceType.of(ec2.InstanceClass.T4G, ec2.InstanceSize.MICRO),
-      databaseName: 'subletnu',
+      databaseName: DB_NAME,
       iamAuthentication: true,
       // gp3 under 400 GiB gets the 3,000 IOPS / 125 MiBps baseline free; iops/storageThroughput stay unset.
       allocatedStorage: 20,

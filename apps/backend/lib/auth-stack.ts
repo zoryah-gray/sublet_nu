@@ -11,6 +11,7 @@ import { execSync } from 'child_process';
 import * as fs from 'fs';
 import * as path from 'path';
 import { Construct } from 'constructs';
+import { DB_NAME } from './data-stack';
 
 export type DeployEnvironment = 'dev' | 'prod';
 
@@ -20,10 +21,9 @@ export interface AuthStackProps extends cdk.StackProps {
   dbInstance: rds.DatabaseInstance;
 }
 
-// Postgres role the provisioning Lambda logs in as. Created by hand, not by a
-// migration (rds_iam only exists on RDS) — see docs/onboarding/backend.md.
-const DB_IAM_USER = 'app_user';
-const DB_NAME = 'subletnu';
+// Postgres role the provisioning Lambda logs in as. Created once by the bootstrap
+// stack (lib/bootstrap-migrator-role-stack.ts); its users grant comes from a migration.
+export const DB_IAM_USER = 'app_user';
 
 // Local test runs and Finder leave these in functions/; they must not ship to Lambda.
 const PACKAGING_JUNK = ['**/__pycache__', '**/*.pyc', '**/.DS_Store'];
@@ -41,13 +41,15 @@ const APP_ORIGINS: Record<DeployEnvironment, string> = {
  * PostConfirmation (creates the users row in RDS).
  */
 export class AuthStack extends cdk.Stack {
+  readonly utilsLayer: lambda.ILayerVersion;
+
   constructor(scope: Construct, id: string, props: AuthStackProps) {
     super(scope, id, props);
     const { environment, vpc, dbInstance } = props;
 
     cdk.Tags.of(this).add('Project', 'SubletNU');
 
-    const utilsLayer = new lambda.LayerVersion(this, 'UtilsLayer', {
+    this.utilsLayer = new lambda.LayerVersion(this, 'UtilsLayer', {
       // The directory containing python/, so Lambda extracts it to /opt/python.
       code: lambda.Code.fromAsset(path.join(__dirname, '../functions/layer'), { exclude: PACKAGING_JUNK }),
       compatibleRuntimes: [lambda.Runtime.PYTHON_3_12],
@@ -110,7 +112,7 @@ export class AuthStack extends cdk.Stack {
       architecture: lambda.Architecture.X86_64,
       handler: 'post_confirmation.lambda_handler',
       code: provisionUserCode,
-      layers: [utilsLayer],
+      layers: [this.utilsLayer],
       vpc,
       vpcSubnets: { subnetType: ec2.SubnetType.PRIVATE_ISOLATED },
       allowAllOutbound: false,

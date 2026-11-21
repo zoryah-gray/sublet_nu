@@ -81,3 +81,40 @@ the migrations have run.
   At 5,000 rows `sublets` is only ~384 heap pages, so the planner correctly
   seq-scans unselective predicates; larger sizes move the crossover points.
 - Committed EXPLAIN output lives in `db/explain/`.
+
+### Migrations on RDS (`migrator_role`)
+
+RDS sits in isolated subnets, so migrations there run through
+`MigrationRunnerFn` (`lib/migration-stack.ts`), not from a laptop or CI. It
+logs in as **`migrator_role`** with an IAM token and applies every pending file
+bundled from `db/migrations/` in one transaction (`pgmigrations` tracks them).
+
+Three Postgres credentials, each with one job:
+
+| Role | Can | Used by |
+| --- | --- | --- |
+| `app_user` | `SELECT, INSERT` on `users` only | `ProvisionUserFn` (runtime) |
+| `migrator_role` | `CREATE` on schema `public`; owns what migrations create | `MigrationRunnerFn` |
+| master (`postgres`) | everything | **once**, by the bootstrap stack below |
+
+`migrator_role` is separate from `app_user` so a bug or injection in the app
+can't alter the schema, and separate from the master user so the routine
+migration path never touches the master password (the runner has no Secrets
+Manager access at all). The runner has no event source; only an explicit
+invoke runs it.
+
+**One-time bootstrap (destroy after use):** `lib/bootstrap-migrator-role-stack.ts`
+creates both roles as master. Deploy it with `-c bootstrapMigrator=true`, invoke
+`BootstrapMigratorRoleFn` once from the console's Test button, confirm the roles
+exist, then `cdk destroy` it (same `-c` flags). It is never part of `cdk deploy --all`.
+
+**Running a migration** (full walkthrough lives outside this repo):
+
+1. Merge the migration; the deploy re-bundles `db/migrations/` into `MigrationRunnerFn`.
+2. Switch into the **`DbMigrationRunnerInvoker`** IAM role in the console.
+3. Lambda console → the function named in the `MigrationRunnerFunctionName`
+   output of `SubletNU-Migration-<env>` → Test with `{}` (the event is ignored).
+4. CloudWatch (`MigrationRunnerFn` log group, 30-day retention): expect
+   `Applied migrations: [...]` then `Migration run complete`. A failure logs the
+   migration name and `pgcode` only, and the whole run is rolled back.
+5. Switch back to your normal role.

@@ -9,6 +9,8 @@
 | Billing guardrails: SNS topic + 4 budgets | `lib/backend-stack.ts` → `BackendStack` | Yes |
 | VPC (2 isolated subnets, no NAT) + RDS Postgres 17, db.t4g.micro | `lib/data-stack.ts` → `SubletNU-Data-<env>` | Not yet |
 | Cognito user pool, Google IdP, app client, 2 trigger Lambdas, utils Layer | `lib/auth-stack.ts` → `SubletNU-Auth-<env>` | Not yet |
+| `MigrationRunnerFn` (Node, invoke-only, runs as `migrator_role`) | `lib/migration-stack.ts` → `SubletNU-Migration-<env>` | Not yet |
+| **One-time** `BootstrapMigratorRoleFn` + Secrets Manager endpoint (creates `app_user`, `migrator_role`; destroy after use) | `lib/bootstrap-migrator-role-stack.ts` → `SubletNU-BootstrapMigratorRole-<env>`, only with `-c bootstrapMigrator=true` | Not yet |
 | Schema + migrations (node-pg-migrate, raw SQL) | `db/migrations/`, snapshot in `db/schema.sql` | Local docker + CI only |
 | CI: typecheck, migrate up → down-all → up, jest DB tests | `.github/workflows/ci-backend.yml` | — |
 
@@ -25,6 +27,7 @@ flowchart LR
   C -->|PostConfirmation| P[ProvisionUserFn]
   subgraph VPC [VPC: isolated subnets, no internet route]
     P -->|IAM token, TLS :5432| R[(RDS Postgres)]
+    M[MigrationRunnerFn] -->|IAM token as migrator_role| R
   end
   L[[utils Layer]] -.-> P
 ```
@@ -85,15 +88,11 @@ npx cdk synth -c environment=dev -c alertEmail=you@example.com
 npx cdk deploy SubletNU-Data-dev SubletNU-Auth-dev -c environment=dev -c alertEmail=...
 ```
 
-After the first DB deploy, create the Lambda's Postgres role by hand. `rds_iam` exists only on RDS, so this can't be a migration:
+After the first DB deploy, the Postgres roles and schema go in through Lambdas (RDS is unreachable from a laptop or CI). Order matters:
 
-```sql
-CREATE ROLE app_user LOGIN;
-GRANT rds_iam TO app_user;
-GRANT SELECT, INSERT ON users TO app_user;
-```
-
-**Open gap:** RDS sits in isolated subnets, so there's no path yet for running migrations or `psql` from a laptop or CI. Options include a short-lived bastion, SSM port forwarding, or a migration Lambda. Not decided.
+1. **Bootstrap (one-time, destroy after use):** `npx cdk deploy SubletNU-BootstrapMigratorRole-dev -c environment=dev -c bootstrapMigrator=true -c alertEmail=...`, then invoke `BootstrapMigratorRoleFn` once (console Test button). As master, in one transaction, it creates `app_user` and `migrator_role`, grants both `rds_iam`, grants `migrator_role` `CREATE` on schema `public`, and creates the `postgis` extension (needs `rds_superuser`). Confirm the roles exist, then `npx cdk destroy` the same stack with the same flags. Destroy it **before** removing it from `bin/backend.ts`.
+2. **Migrate:** invoke `MigrationRunnerFn` (steps in `apps/backend/README.md` § Migrations on RDS). The `add-rds-iam-grant-guard` migration grants `app_user` `SELECT, INSERT` on `users`, which can only happen once `users` exists.
+3. Only then can sign-up work: `ProvisionUserFn` logs in as `app_user`.
 
 ## Design choices and assumptions
 
@@ -108,6 +107,10 @@ GRANT SELECT, INSERT ON users TO app_user;
 | `users.display_name` UNIQUE + check-then-insert | Concurrent sign-ups with the same base name can race. The constraint turns that into a logged provisioning failure, not a duplicate. Accepted gap, no locking |
 | `email` attribute immutable | The stored email is the Google-verified one; users can't change it. Cognito rewrites mapped attributes only when the value changes, so only a user whose Google email itself changes would be blocked from signing in |
 | `allowTo` instead of `dbInstance.connections.allowFrom` | Same SG-to-SG rule, but it's created in the Auth stack. `allowFrom` creates a Data↔Auth dependency cycle |
+| Three Postgres credentials | `app_user`: `SELECT, INSERT` on `users` only (runtime). `migrator_role`: `CREATE` on schema `public` only, plus whatever its migrations create and so own; no grants on data tables beyond that. Master: used exactly once, by the bootstrap stack, which no longer exists afterwards. An app bug can't change the schema, and routine migrations never touch the master password |
+| `MigrationRunnerFn` has no event source | No API, schedule or S3 trigger can start a schema change; only an explicit invoke through the hand-made `DbMigrationRunnerInvoker` role. The event is ignored, so a caller can't pick files or SQL |
+| Bootstrap as a separate, temporary stack | Reading the master secret needs a Secrets Manager VPC endpoint (~$0.01/h) and a Lambda that can log in as master. Both exist only for the minutes it takes to bootstrap. Gated behind `-c bootstrapMigrator=true` so `cdk deploy --all` (CI) never recreates it |
+| `postgis` created by the bootstrap, not only by the migration | `CREATE EXTENSION postgis` needs `rds_superuser`. Once it exists, the migration's `IF NOT EXISTS` is a no-op that `migrator_role` can run |
 | `restrictDefaultSecurityGroup: false` | `true` adds a custom-resource Lambda with a never-expiring log group. Nothing uses the default SG |
 
 ## Security posture (audited 11/01/26)
@@ -116,6 +119,10 @@ GRANT SELECT, INSERT ON users TO app_user;
 |---|---|---|
 | DB TLS `verify-full` + RDS CA bundle | `utils.get_db_connection` | `require` encrypts but never checks the server cert, so an impostor inside the VPC could collect IAM tokens. RDS on PG 17 also forces SSL server-side (`rds.force_ssl=1` default) |
 | No DB error text in logs | `post_confirmation.py` | Postgres messages can include the failing row (emails, names). Only `pgcode` / constraint name is logged |
+| Migration logs: names and `pgcode` only | `migration_runner.mjs`, `bootstrap_migrator_role.mjs` | node-pg-migrate's own logger prints raw SQL on error, so it's replaced. Success logs the applied names; failure logs the migration (or bootstrap step) name, `pgcode` and error type, then throws a fresh error so the invocation shows as failed without statement text |
+| Three-tier DB credentials | bootstrap stack, `migration-stack.ts`, `auth-stack.ts` | `app_user` (SELECT/INSERT on `users`), `migrator_role` (CREATE on `public`), master (once, then its only reader is destroyed). `rds-db:connect` is scoped per role to this instance |
+| Runner can't read the master secret | `migration-stack.ts` | Its role has only `rds-db:connect` on `.../migrator_role`, with no `secretsmanager:*`. Only the temporary bootstrap Lambda gets `GetSecretValue`, on that one secret |
+| Migration runner: no event source | `migration-stack.ts` | Invoke-only, through the hand-made `DbMigrationRunnerInvoker` role. Runs every pending bundled migration in one transaction; the event can't name files or SQL |
 | App client: only `ALLOW_REFRESH_TOKEN_AUTH` | `auth-stack.ts` (`authFlows: { userSrp: false }`) | The default also enables SRP and custom auth; this pool has no passwords, so those are pure attack surface |
 | Token revocation on, user-existence errors hidden | `enableTokenRevocation`, `preventUserExistenceErrors` | Logout revokes the refresh token; no account enumeration |
 | `accountRecovery: NONE` | user pool | No passwords exist to recover |
@@ -140,8 +147,11 @@ us-east-2 (Ohio) list prices match us-east-1 for these services; re-check in the
 | Backups (7 days, ≤ DB size) | 0 |
 | Cognito (Lite tier, < 10,000 MAU) | 0 |
 | Lambdas + Layer (signups only) | ~0 |
-| CloudWatch Logs (2 groups, 7-day retention) | ~0 |
+| `MigrationRunnerFn` (a few invokes per month) | ~0 |
+| CloudWatch Logs (2 groups at 7 days, 1 at 30 days) | ~0 |
 | **Total** | **~14.40** |
+
+The one-time bootstrap stack adds a Secrets Manager interface endpoint (one AZ): ~$0.01/hour while it exists (~$7.30/month if it's forgotten), so destroy it right after use.
 
 Only one environment is deployed at a time. Deploying `dev` and `prod` together would double the RDS lines (~$29/month).
 

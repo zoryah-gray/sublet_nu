@@ -3,6 +3,9 @@ import * as cdk from 'aws-cdk-lib/core';
 import { BackendStack } from '../lib/backend-stack';
 import { DataStack } from '../lib/data-stack';
 import { AuthStack, DeployEnvironment } from '../lib/auth-stack';
+import { MigrationStack } from '../lib/migration-stack';
+import { BootstrapMigratorRoleStack } from '../lib/bootstrap-migrator-role-stack';
+import { UsersTableCheckStack } from '../lib/users-table-check-stack';
 
 const app = new cdk.App();
 
@@ -21,9 +24,38 @@ if (environment !== 'dev' && environment !== 'prod') {
 }
 
 const data = new DataStack(app, `SubletNU-Data-${environment}`, { env });
-new AuthStack(app, `SubletNU-Auth-${environment}`, {
+new MigrationStack(app, `SubletNU-Migration-${environment}`, {
   env,
   environment: environment as DeployEnvironment,
   vpc: data.vpc,
   dbInstance: data.dbInstance,
 });
+
+// ONE-TIME, destroy after use (see lib/bootstrap-migrator-role-stack.ts). Only in
+// the app with -c bootstrapMigrator=true, so `cdk deploy --all` (CI) never recreates it.
+if (app.node.tryGetContext('bootstrapMigrator') === 'true') {
+  new BootstrapMigratorRoleStack(app, `SubletNU-BootstrapMigratorRole-${environment}`, {
+    env,
+    environment: environment as DeployEnvironment,
+    vpc: data.vpc,
+    dbInstance: data.dbInstance,
+  });
+}
+const auth = new AuthStack(app, `SubletNU-Auth-${environment}`, {
+  env,
+  environment: environment as DeployEnvironment,
+  vpc: data.vpc,
+  dbInstance: data.dbInstance,
+});
+
+// THROWAWAY, destroy after use (see lib/users-table-check-stack.ts). Only in the
+// app with -c usersTableCheck=true, so `cdk deploy --all` (CI) never creates it.
+if (app.node.tryGetContext('usersTableCheck') === 'true') {
+  new UsersTableCheckStack(app, `SubletNU-UsersTableCheck-${environment}`, {
+    env,
+    environment: environment as DeployEnvironment,
+    vpc: data.vpc,
+    dbInstance: data.dbInstance,
+    utilsLayer: auth.utilsLayer,
+  });
+}
