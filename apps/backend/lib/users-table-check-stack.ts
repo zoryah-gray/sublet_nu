@@ -5,8 +5,11 @@
 // rows in the response) or UsersTableResetFn (empties users) from the Lambda
 // console's Test button, then:
 //   npx cdk destroy SubletNU-UsersTableCheck-<env> -c environment=<env> -c usersTableCheck=true
-// Destroy BEFORE removing this stack from bin/backend.ts: it imports Data and
-// Auth stack exports, and those stacks can't drop an export that's still in use.
+// Destroy BEFORE removing this stack from bin/backend.ts: it imports Data stack
+// exports, and that stack can't drop an export that's still in use.
+//
+// It imports nothing from Auth or Migration (its own copy of the utils layer, its
+// own role-name constant), so it never blocks a routine deploy of either.
 //
 // The response contains real PII (email, full_name); the function never logs it.
 // ============================================================================
@@ -23,16 +26,19 @@ import * as path from 'path';
 import { Construct } from 'constructs';
 import { DB_IAM_USER, DeployEnvironment } from './auth-stack';
 import { DB_NAME } from './data-stack';
-import { DB_MIGRATOR_USER } from './migration-stack';
 
 export interface UsersTableCheckStackProps extends cdk.StackProps {
   environment: DeployEnvironment;
   vpc: ec2.IVpc;
   dbInstance: rds.DatabaseInstance;
-  utilsLayer: lambda.ILayerVersion;
 }
 
 const CHECKS_DIR = path.join(__dirname, '../functions/checks');
+const LAYER_DIR = path.join(__dirname, '../functions/layer');
+const PACKAGING_JUNK = ['**/__pycache__', '**/*.pyc', '**/.DS_Store'];
+
+// Postgres role that owns users (lib/migration-stack.ts uses the same name).
+const DB_MIGRATOR_USER = 'migrator_role';
 const HANDLER_FILES = ['users_table_check.py', 'users_table_reset.py'];
 
 /**
@@ -43,13 +49,22 @@ const HANDLER_FILES = ['users_table_check.py', 'users_table_reset.py'];
 export class UsersTableCheckStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props: UsersTableCheckStackProps) {
     super(scope, id, props);
-    const { vpc, dbInstance, utilsLayer } = props;
+    const { vpc, dbInstance } = props;
 
     cdk.Tags.of(this).add('Project', 'SubletNU');
 
+    // Own copy of the Auth stack's utils layer (same source), so this stack doesn't
+    // import an Auth export that would block Auth deploys while this stack exists.
+    const utilsLayer = new lambda.LayerVersion(this, 'UtilsLayer', {
+      code: lambda.Code.fromAsset(LAYER_DIR, { exclude: PACKAGING_JUNK }),
+      compatibleRuntimes: [lambda.Runtime.PYTHON_3_12],
+      compatibleArchitectures: [lambda.Architecture.X86_64],
+      description: 'SubletNU shared Python helpers (throwaway copy for UsersTableCheckStack)',
+    });
+
     // Same bundling as ProvisionUserFn: psycopg2-binary isn't in the utils layer.
     const code = lambda.Code.fromAsset(CHECKS_DIR, {
-      exclude: ['**/__pycache__', '**/*.pyc', '**/.DS_Store'],
+      exclude: PACKAGING_JUNK,
       bundling: {
         image: lambda.Runtime.PYTHON_3_12.bundlingImage,
         platform: 'linux/amd64',

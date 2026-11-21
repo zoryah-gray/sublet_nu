@@ -1,7 +1,11 @@
-"""UsersTableResetFn (throwaway): empties the users table, as migrator_role (its owner)."""
+"""UsersTableResetFn (throwaway): empties users and every table referencing it, as migrator_role (the owner).
+
+CASCADE because a plain TRUNCATE fails on a table that foreign keys reference, even when the
+referencing tables are empty. It also empties sublets, requests, messages, etc.
+"""
 from utils import get_db_connection
 
-STATEMENT = 'TRUNCATE TABLE users'
+STATEMENT = 'TRUNCATE TABLE users CASCADE'
 
 
 def lambda_handler(event, context):
@@ -17,4 +21,4 @@ def lambda_handler(event, context):
     finally:
         conn.close()
 
-    print('Truncated users table')
+    print('Truncated users table and all tables referencing it (CASCADE)')

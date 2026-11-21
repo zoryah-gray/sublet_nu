@@ -56,6 +56,5 @@ if (app.node.tryGetContext('usersTableCheck') === 'true') {
     environment: environment as DeployEnvironment,
     vpc: data.vpc,
     dbInstance: data.dbInstance,
-    utilsLayer: auth.utilsLayer,
   });
 }

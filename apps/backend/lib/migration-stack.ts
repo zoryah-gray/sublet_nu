@@ -17,7 +17,7 @@ export interface MigrationStackProps extends cdk.StackProps {
 
 // Postgres role the runner logs in as. Created once by the bootstrap stack
 // (lib/bootstrap-migrator-role-stack.ts); CREATE on schema public only.
-export const DB_MIGRATOR_USER = 'migrator_role';
+const DB_MIGRATOR_USER = 'migrator_role';
 
 /**
  * MigrationRunnerFn: applies pending db/migrations to RDS as migrator_role.

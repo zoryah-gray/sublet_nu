@@ -143,15 +143,24 @@ export class AuthStack extends cdk.Stack {
       resources: [`arn:aws:rds-db:${this.region}:${this.account}:dbuser:${dbInstance.instanceResourceId}/${DB_IAM_USER}`],
     }));
 
-    const userPool = new cognito.UserPool(this, 'UserPool', {
+    // New logical ID (was 'UserPool'): Cognito rejects changing an existing pool's
+    // standard-attribute mutability, so the email change needs a replacement pool.
+    const userPool = new cognito.UserPool(this, 'UserPoolV2', {
       userPoolName: `subletnu-user-pool-${environment}`,
       signInAliases: { email: true },
       autoVerify: { email: true },
       standardAttributes: {
-        // Immutable: the stored email is the Google-verified one and can't be changed.
-        // Cognito only rewrites mapped attributes when the value changes, so sign-in
-        // fails only if the user's Google email itself changes (AWS attribute-mapping docs).
-        email: { required: true, mutable: false },
+        // Mutable, for two reasons:
+        // 1. CDK's StandardAttribute.mutable docs: "For any user pool attribute that's
+        //    mapped to an identity provider attribute, this must be set to true." email
+        //    is mapped from Google, and an immutable mapped attribute breaks every
+        //    sign-in after the first.
+        // 2. A student's NU email can legitimately change (u.northwestern.edu as an
+        //    undergrad, northwestern.edu later); that transition should be supported.
+        // "No arbitrary self-serve email changes" is an application-layer policy (no
+        // UpdateUserAttributes/AdminUpdateUserAttributes path is ever exposed), not a
+        // schema guarantee.
+        email: { required: true, mutable: true },
       },
       lambdaTriggers: {
         preSignUp: authDomainFn,
@@ -165,7 +174,7 @@ export class AuthStack extends cdk.Stack {
 
     const userPoolDomain = userPool.addDomain('HostedDomain', {
       cognitoDomain: {
-        domainPrefix: `subletnu-${environment}-26611`,
+        domainPrefix: `subletnu-${environment}-26612`,
       },
     });
 
